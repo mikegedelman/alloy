@@ -1,3 +1,4 @@
+[org 0x7c00]
 BITS 16
 
 header:
@@ -8,14 +9,14 @@ OEMLabel                db "LABEL   "       ; Disk label
 BytesPerSector          dw 512              ; Bytes per sector
 SectorsPerCluster       db 1                ; Sectors per cluster
 ReservedForBoot         dw 1                ; Reserved sectors for boot record
-NumberOfFats            db 1                ; Number of copies of the FAT
+NumberOfFats            db 2                ; Number of copies of the FAT
 RootDirEntries          dw 0                ; Number of entries in root dir
                                             ; (224 * 32 = 7168 = 14 sectors to read)
 LogicalSectors          dw 2880             ; Number of logical sectors
 MediumByte              db 0F0h             ; Medium descriptor byte
 SectorsPerFat           dw 9                ; Sectors per FAT
 SectorsPerTrack         dw 18               ; Sectors per track (36/cylinder)
-Sides                   dw 1                ; Number of sides/heads
+Sides                   dw 2                ; Number of sides/heads
 HiddenSectors           dd 0                ; Number of hidden sectors
 LargeSectors            dd 0                ; Number of LBA sectors
 DriveNo                 dw 0                ; Drive No: 0
@@ -23,7 +24,6 @@ Signature               db 41               ; Drive signature: 41 for floppy
 VolumeID                dd 00000000h        ; Volume ID: any number
 VolumeLabel             db "OS         "    ; Volume Label: any 11 chars
 FileSystem              db "FAT12   "       ; File system type: don't change!
-
 
 boot:
     mov ax, 07C0h     ; Set up 4K stack space after this bootloader
@@ -34,20 +34,79 @@ boot:
     mov ax, 07C0h     ; Set data segment to where we're loaded
     mov ds, ax
 
-    call cls
-    mov si, hi_msg
+    xor ax, ax
+    mov es, ax
+    mov bx, 800h
+
+    mov ah, 02h
+    mov al, 16        ; Num sectors to read
+    mov ch, 0         ; Cylinder
+    mov cl, 2         ; Sector
+    mov dh, 0         ; Head
+
+    int 13h
+
+    jnc enable_a20
+    mov si, err_msg
     call print_string
-    jmp $
 
-hi_msg db 'Hi, I am a kernel', 0
+enable_a20:
+    cli
+    ; Alternate A20 way? there are like 10 ways to do this
+    ; in al, 0x64
+    ; test al, 0x2
+    ; jnz enable_a20
+    ; mov al, 0xdf
+    ; out al, 0x64
 
-cls:
-    pusha
-    mov ah, 0x00
-    mov al, 0x03  ; text mode 80x25 16 colours
-    int 0x10
-    popa
-    ret
+    ; "Fast A20"
+    in al, 0x92
+    or al, 2
+    out 0x92, al
+
+enter_protected:
+    ; set gs segment to 0, then use that as base for our gdtinfo pointer
+    xor bx, bx
+    mov gs, bx
+    lgdt [gs:gdtinfo]   ; load gdt register
+
+    ; set protected mode bit!
+    mov eax, cr0
+    or  al, 1
+    mov cr0, eax
+
+    ; far jump to clear prefetch
+    jmp 0x08:finish_prot
+    nop
+    nop
+
+finish_prot:
+    [bits 32]
+    ; set all data segments to 2nd GDT entry
+    mov bx, 0x10
+    mov ds, bx
+    mov es, bx
+    mov fs, bx
+    mov gs, bx
+    mov ss, bx
+
+    ; TODO - read entry point from ELF header instead of hard coding
+    jmp 0x08:1800h
+    ; mov eax, 0xB8000
+    ; mov word [eax], 0x0F42
+    ; jmp $
+
+err_msg db 'An error occurred reading from disk', 0
+
+gdtinfo:
+   dw gdt_end - gdt   ; limit
+   dd gdt             ;start of table
+
+gdt         dd 0,0  ; entry 0 is always unused
+            db 0xff, 0xff, 0, 0, 0, 0x9a,      0xcf,      0 ; cs
+            db 0xff, 0xff, 0, 0, 0, 0x92,      0xcf,      0 ; ds
+gdt_end:
+            dd 0
 
 print_string:         ; Routine: output string in SI to screen
     mov ah, 0Eh       ; int 10h 'print char' function
@@ -61,5 +120,6 @@ print_string:         ; Routine: output string in SI to screen
 .done:
     ret
 
+boot_sig:
     times 510-($-$$) db 0 ; Pad remainder of boot sector with 0s
     dw 0xAA55     ; The standard PC boot signature
