@@ -1,18 +1,22 @@
 bits 32
-; section .text
-global kernel_main
-kernel_main:
+
+section .bss align=16
+stack_bottom:
+resb 16384 ; 16 KiB
+stack_top:
+
+section .text
+global _start:function (_start.end - _start)
+_start:
+    ; mov word [gs:0xB8000], 0x0F42
+
+    mov esp, stack_top
+
+    extern kernel_main
+    call kernel_main
+
     cli
-    mov eax, 0xB8000
-    mov word [eax], 0x0F42
-
-    jmp $
-
-    ; mov ax, 0xB800
-    ; mov gs, ax
-
-    ; mov ax, 0xB800
-    ; mov byte [gs:0], 0x42
-    ; mov byte [gs:1], 0x0F
-
-    ; jmp $
+.hang:
+    hlt
+    jmp .hang
+.end:

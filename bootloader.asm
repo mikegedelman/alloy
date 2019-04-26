@@ -1,6 +1,8 @@
 [org 0x7c00]
 BITS 16
 
+%define KERNEL_MEM 800h
+
 header:
     jmp boot
     nop
@@ -90,13 +92,19 @@ finish_prot:
     mov gs, bx
     mov ss, bx
 
-    ; TODO - read entry point from ELF header instead of hard coding
-    jmp 0x08:1800h
-    ; mov eax, 0xB8000
-    ; mov word [eax], 0x0F42
-    ; jmp $
+    ; I think we're getting lucky that the first ELF program header is
+    ; our text section; we might need to loop through the program headers
+    ; and check that they're loadable first.
+    mov eax, [KERNEL_MEM + 0x1C] ; eax now points to ELF program header tbl
+    add eax, 4 ; eax now points to offset of first ELF section
+    mov ebx, [KERNEL_MEM + eax]
+    add ebx, KERNEL_MEM
+ 
+    ; we can jump directly to ebx because it's still in our code segment
+    jmp ebx
 
 err_msg db 'An error occurred reading from disk', 0
+kernel_start_ptr dw 0
 
 gdtinfo:
    dw gdt_end - gdt   ; limit
