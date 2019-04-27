@@ -1,6 +1,6 @@
 C_FILES := $(shell find . -type f -name "*.c")
 ASM_FILES := kernel32.asm
-OBJ_FILES := kernel32.o kernel.o term.o
+OBJ_FILES := kernel32.o kernel.o term.o stdio.o fs.o
 
 # i386-elf-gcc is a cross compiler that should have been set up on host
 CC := i386-elf-gcc
@@ -17,20 +17,20 @@ boot.bin: boot/bootloader.asm
 	nasm -f bin -o boot.bin boot/bootloader.asm
 
 $(OBJ_FILES): $(ASM_FILES) $(C_FILES)
-	nasm -felf32 $(ASM_FILES)
+	nasm -felf32 kernel32.asm
 	i386-elf-gcc -c $(C_FILES) -I./include -std=gnu99 -ffreestanding -O2 -Wall -Wextra  # -Wl,--oformat=binary
 
 kernel.bin: $(OBJ_FILES)
 	i386-elf-gcc -T linker.ld -o kernel.bin -ffreestanding -O2 -nostdlib $(OBJ_FILES) -lgcc
 
 clean:
-	rm -rf *.o *.bin *.img
+	rm -rf *.o *.bin *.img *.s
 
 # Saving some old make targets just in case
 
 multiboot: $(OBJ_FILES)
 	nasm -f elf32 -o multiboot.o boot/multiboot.asm
-	i386-elf-gcc -T multiboot.ld -o os-multiboot.bin -ffreestanding -O2 -nostdlib multiboot.o kernel.o term.o -lgcc
+	i386-elf-gcc -T multiboot.ld -o os-multiboot.bin -ffreestanding -O2 -nostdlib multiboot.o kernel.o term.o fs.o stdio.o -lgcc
 
 # old: boot
 # 	nasm -f bin -o kernel.bin kernel32.asm
