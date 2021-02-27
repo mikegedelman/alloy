@@ -17,6 +17,7 @@
 // }
 
 use crate::cpu;
+use crate::drivers::ps2;
 
 const PIC1: u16 = 0x20;	/* IO base address for master PIC */
 const PIC2: u16 = 0xA0;		/* IO base address for slave PIC */
@@ -35,19 +36,16 @@ fn pic_send_eoi(irq: u32) {
 	cpu::outb(PIC1_COMMAND, PIC_EOI);
 }
 
-fn keypress_handler() {
-    let scancode = cpu::inb(0x60);
-    print!("{} ", scancode);
-}
-
-
 #[no_mangle]
 pub unsafe extern "C"
 fn isr_handler(x: u32) {
     match x {
         50 => println!("syscall 50"),
         32 => {},  // Hardware timer: ignore for now
-        33 => keypress_handler(),
+        33 => {
+            let scancode = cpu::inb(0x60);
+            ps2::process_scancode(scancode);
+        },
         _ => {},
     }
     pic_send_eoi(x);
