@@ -1,8 +1,9 @@
 #![no_std]
-#![no_main]
 #![feature(asm)]
 
-#[panic_handler]fn panic(info: &::core::panic::PanicInfo)->!{
+#[cfg(not(feature="test"))]
+#[panic_handler]
+fn panic(info: &::core::panic::PanicInfo)->!{
     println!("{}", info);
     loop {}
 }
@@ -10,8 +11,12 @@
 #[macro_use]
 mod term;
 mod cpu;
+#[allow(dead_code)]
+#[allow(unused_unsafe)]
 mod drivers;
 mod int;
+#[macro_use]
+mod serial;
 
 #[cfg(feature="test")]
 mod test;

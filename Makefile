@@ -48,7 +48,7 @@ run: multiboot
 	qemu-system-i386 -kernel os-multiboot.bin
 
 test: multiboot_test
-	qemu-system-i386 -kernel test-multiboot.bin
+	scripts/test.sh
 
 
 cd: multiboot

@@ -1,3 +1,21 @@
+pub struct Port {
+    port: u16
+}
+
+impl Port {
+    pub fn new(port: u16) -> Port {
+        Port { port }
+    }
+
+    pub fn write(&mut self, value: u8) {
+        unsafe{ outb(self.port, value); }
+    }
+
+    pub fn read(&mut self) -> u8 {
+        unsafe{ inb(self.port) }
+    }
+}
+
 pub unsafe fn outb(port: u16, value: u8) {
     asm!(
         "out dx, al",
