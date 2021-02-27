@@ -16,21 +16,25 @@ impl Port {
     }
 }
 
-pub unsafe fn outb(port: u16, value: u8) {
-    asm!(
-        "out dx, al",
-        in("dx") port,
-        in("al") value,
-     );
+pub fn outb(port: u16, value: u8) {
+    unsafe {
+        asm!(
+            "out dx, al",
+            in("dx") port,
+            in("al") value,
+        );
+    }
 }
 
-pub unsafe fn inb(port: u16) -> u8 {
+pub fn inb(port: u16) -> u8 {
     let val: u8;
-    asm!(
-        "in al, dx",
-        out("al") val,
-        in("dx") port,
-     );
+    unsafe {
+        asm!(
+            "in al, dx",
+            out("al") val,
+            in("dx") port,
+        );
+    }
      val
 }
 

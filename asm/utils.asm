@@ -57,6 +57,53 @@ load_gdt:
     ret
 .end:
 
+; global io_wait
+; io_wait:
+;    pushad
+
+;    push 0x28
+;    push .next
+;    retf
+
+; .next:
+;    nop
+;    nop
+;    nop
+;    nop
+;    pause
+
+;    push 0x28
+;    push .next2
+;    retf
+
+; .next2:
+;    nop
+;    nop
+;    nop
+;    nop
+;    pause
+
+;    push 0x28
+;    push .next3
+;    retf
+
+; .next3:
+;    nop
+;    nop
+;    nop
+;    nop
+;    pause
+
+;    push 0x28
+;    push .next4
+;    retf
+
+; .next4:
+;    out 0x80, al
+;    out 0x80, al
+
+;    popad
+;    ret
 
 
 extern isr_handler

@@ -1,6 +1,8 @@
 use lazy_static::lazy_static;
 use spin::Mutex;
+
 use crate::drivers::uart_16550::SerialPort;
+use crate::cpu;
 
 lazy_static! {
     pub static ref SERIAL1: Mutex<SerialPort> = {
@@ -13,10 +15,13 @@ lazy_static! {
 #[doc(hidden)]
 pub fn _print(args: ::core::fmt::Arguments) {
     use core::fmt::Write;
+
+    cpu::disable_int();
     SERIAL1
         .lock()
         .write_fmt(args)
         .expect("Printing to serial failed");
+        cpu::enable_int();
 }
 
 /// Prints to the host through the serial interface.

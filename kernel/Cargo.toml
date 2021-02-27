@@ -9,7 +9,8 @@ edition = "2018"
 
 [dependencies]
 spin = "0.7.1"
-bitflags = { version = "1.2.1", optional = true }
+volatile = "0.2.6"
+bitflags = "1.2.1"
 
 [dependencies.lazy_static]
 version = "1.0"
@@ -25,4 +26,4 @@ overflow-checks = false
 
 [features]
 verbose = []
-test = ["bitflags"]
+test = []
