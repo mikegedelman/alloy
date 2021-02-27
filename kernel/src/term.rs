@@ -5,7 +5,7 @@ use crate::cpu;
 const VGA_WIDTH: isize = 80;
 const VGA_HEIGHT: isize = 25;
 const VGA_COLOR: u8 = 0x0F;
-// const VGA_BUFFER: u32 = 0xb8000;
+const VGA_BUFFER: u32 = 0xC00B8000; // virtual address: 0xC0000000 + 0xB8000
 
 // static mut term: TermWriter = TermWriter { row: 0, col: 0 };
 use lazy_static::lazy_static;
@@ -79,7 +79,7 @@ fn shift_up() {
 }
 
 fn char_color_at(x: isize, y: isize) -> (u8, u8) {
-    let term_buffer = 0xb8000 as *mut u8;
+    let term_buffer = VGA_BUFFER as *mut u8;
     let offset = y * 2 * VGA_WIDTH + (x * 2);
     unsafe {
         let c = *term_buffer.offset(offset);
@@ -89,7 +89,7 @@ fn char_color_at(x: isize, y: isize) -> (u8, u8) {
 }
 
 pub fn putcharat(c: char, x: isize, y: isize) {
-    let term_buffer = 0xb8000 as *mut u8;
+    let term_buffer = VGA_BUFFER as *mut u8;
     unsafe {
         let offset = y * 2 * VGA_WIDTH + (x * 2);
         *term_buffer.offset(offset) = c as u8;
@@ -98,7 +98,7 @@ pub fn putcharat(c: char, x: isize, y: isize) {
 }
 
 fn putu8at_color(c: u8, color: u8, x: isize, y: isize) {
-    let term_buffer = 0xb8000 as *mut u8;
+    let term_buffer = VGA_BUFFER as *mut u8;
     unsafe {
         let offset = y * 2 * VGA_WIDTH + (x * 2);
         *term_buffer.offset(offset) = c as u8;

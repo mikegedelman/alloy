@@ -25,3 +25,11 @@ pub unsafe fn inw(port: u16) -> u16 {
      );
      val
 }
+
+pub fn enable_int() {
+    unsafe{ asm!("sti"); }
+}
+
+pub fn disable_int() {
+    unsafe{ asm!("cli"); }
+}
