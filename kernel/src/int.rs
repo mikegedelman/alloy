@@ -1,58 +1,31 @@
-// Best interrupts info
-// https://alex.dzyoba.com/blog/os-interrupts/
-
-
-// Default representation, alignment lowered to 2.
-// #[repr(C, packed(2))]
-// struct IdtEntry {
-//     handler_low: u16,
-//     some: u16,
-//     some: u8,
-//     some: u8,
-//     some: u16
-// }
-
-// fn build_idt() {
-
-// }
+//! Interrupt handlers
+//! Best interrupts info I can find:
+//! https://alex.dzyoba.com/blog/os-interrupts/
 
 use crate::cpu;
+use crate::drivers::pic_8259;
 use crate::drivers::ps2;
 
-const PIC1: u16 = 0x20;	/* IO base address for master PIC */
-const PIC2: u16 = 0xA0;		/* IO base address for slave PIC */
-const PIC1_COMMAND: u16 = PIC1;
-const PIC1_DATA: u16 = (PIC1+1);
-const PIC2_COMMAND: u16 = PIC2;
-const PIC2_DATA: u16 = (PIC2+1);
-const PIC_EOI: u8 = 0x20; // End-of-interrupt command code
-
-
-fn pic_send_eoi(irq: u32) {
-	if irq >= 8 {
-		cpu::outb(PIC2_COMMAND, PIC_EOI);
+fn send_eoi(irq: u32) {
+    if irq >= 8 {
+        pic_8259::pic2_eoi();
     }
 
-	cpu::outb(PIC1_COMMAND, PIC_EOI);
+    pic_8259::pic1_eoi();
 }
 
 #[no_mangle]
-pub unsafe extern "C"
-fn isr_handler(x: u32) {
+pub unsafe extern "C" fn isr_handler(x: u32) {
     match x {
+        // Just for testing: asm!("int 50") should cause "sycall 50" to be printed
         50 => println!("syscall 50"),
-        32 => {},  // Hardware timer: ignore for now
-        33 => {
+        // IRQs
+        32 => {} // IRQ0 is hardware timer: ignore for now
+        33 => {  // IRQ1 is keyboard input
             let scancode = cpu::inb(0x60);
             ps2::process_scancode(scancode);
-        },
-        _ => {},
+        }
+        _ => {}
     }
-    pic_send_eoi(x);
-}
-
-#[no_mangle]
-pub unsafe extern "C"
-fn _exit() {
-
+    send_eoi(x);
 }

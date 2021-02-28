@@ -1,4 +1,9 @@
-ENTRY(loader) /* TODO: switching to _loader works with GRUB; make it work with both */
+/*
+ * Adapted from:
+ * https://wiki.osdev.org/Higher_Half_x86_Bare_Bones_(Backup)
+ * TODO: switching to _loader works with GRUB; make it work with both
+ */
+ENTRY(loader)
 OUTPUT_FORMAT(elf32-i386)
 
 SECTIONS {

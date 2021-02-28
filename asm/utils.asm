@@ -1,8 +1,13 @@
 bits 32
 
+global idt
+global idt_ptr
+global load_idt
+global io_wait
+
 section .bss
-   idt_start: resb 256*6
-   idt_end:
+   idt: resb 256*6
+   idt_ptr: resb 6
 
 
 section .text
@@ -35,8 +40,6 @@ gdt_descriptor:
     dw gdt_end - gdt_start
     dd gdt_start
 
-CODE_SEG equ gdt_code - gdt_start
-DATA_SEG equ gdt_data - gdt_start
 
 global load_gdt:function (load_gdt.end - load_gdt)
 load_gdt:
@@ -57,62 +60,29 @@ load_gdt:
     ret
 .end:
 
-; global io_wait
-; io_wait:
-;    pushad
+; Load the idt referenced by idt_ptr, which should have been loaded by the kernel
+; before this function is called.
+load_idt:
+    lidt [idt_ptr]
+    ret
+.end:
 
-;    push 0x28
-;    push .next
-;    retf
+; TODO: this is probably fragile
+io_wait:
+    jmp _1
+_1:
+    jmp _2
+_2:
+    ret
+io_wait.end:
+    nop
 
-; .next:
-;    nop
-;    nop
-;    nop
-;    nop
-;    pause
-
-;    push 0x28
-;    push .next2
-;    retf
-
-; .next2:
-;    nop
-;    nop
-;    nop
-;    nop
-;    pause
-
-;    push 0x28
-;    push .next3
-;    retf
-
-; .next3:
-;    nop
-;    nop
-;    nop
-;    nop
-;    pause
-
-;    push 0x28
-;    push .next4
-;    retf
-
-; .next4:
-;    out 0x80, al
-;    out 0x80, al
-
-;    popad
-;    ret
-
-
+; This macro creates a routine that will call our isr_handler function
+; in Rust, passing the number of the interrupt recieved.
 extern isr_handler
-
 %macro handler_macro 1
-;     nop
-; forever%1:
-;     nop
-;     jmp forever%1
+    ; Commented instrs: we should probably be saving all of these segments and stuff,
+    ; but we don't have a userspace right now, so it's ok for a minute
     ; pusha
     ; mov ax, ds
     ; push eax
@@ -140,13 +110,6 @@ extern isr_handler
 .end:
 %endmacro
 
-; global isr_handler:function (isr_handler.end - isr_handler)
-; isr_handler:
-
-; for i in {0..255}
-; do
-;    echo "global int$i\nint$i: handler_macro $i"
-; done
 global int0
 int0: handler_macro 0
 global int1
@@ -659,234 +622,3 @@ global int254
 int254: handler_macro 254
 global int255
 int255: handler_macro 255
-
-; Loads the IDT defined in '_idtp' into the processor.
-; This is declared in C as 'extern void idt_load();'
-global load_idt
-extern idtp
-load_idt:
-    lidt [idtp]
-    ret
-
-global enable_interrupts
-enable_interrupts:
-    sti
-    ret
-
-global disable_interrupts
-disable_interrupts:
-    cli
-    ret
-
-; global build_idt:function (build_idt.end - build_idt)
-; build_idt:
-;     push ecx
-;     mov ecx, 255
-;     mov eax, idt_start  ; eax will point to our current entry
-
-; one_idt_entry:
-
-;     loop one_idt_entry
-; .end:
-
-; extern isr_handler
-; global send_to_isr_handler:function (testfn.end - testfn)
-; testfn:
-;     push ebp
-;     mov  ebp, esp
-;     call print_int
-;     add esp, 4
-;     pop ebp
-;     ret
-; .end:
-
-
-
-; extern isr_handler
-; isr0:
-; isr1:
-; isr2:
-; isr3:
-; isr4:
-; isr5:
-; isr6:
-; isr7:
-; isr8:
-; isr9:
-; isr10:
-; isr11:
-; isr12:
-; isr13:
-; isr14:
-; isr15:
-; isr16:
-; isr17:
-; isr18:
-; isr19:
-; isr20:
-; isr21:
-; isr22:
-; isr23:
-;  nop
-; end:
-
-; idt_start:
-; irq0:
-;       dw isr0
-;       dw 0x0008
-;       db 0x00
-;       db 10101110b
-;       dw 0x0000
-; irq1:
-;       dw isr1
-;       dw 0x0008
-;       db 0x00
-;       db 10101110b
-;       dw 0x0000
-; irq2:
-;       dw isr2
-;       dw 0x0008
-;       db 0x00
-;       db 10101110b
-;       dw 0x0000
-; irq3:
-;       dw isr3
-;       dw 0x0008
-;       db 0x00
-;       db 10101110b
-;       dw 0x0000
-; irq4:
-;       dw isr4
-;       dw 0x0008
-;       db 0x00
-;       db 10101110b
-;       dw 0x0000
-; irq5:
-;       dw isr5
-;       dw 0x0008
-;       db 0x00
-;       db 10101110b
-;       dw 0x0000
-; irq6:
-;       dw isr6
-;       dw 0x0008
-;       db 0x00
-;       db 10101110b
-;       dw 0x0000
-; irq7:
-;       dw isr7
-;       dw 0x0008
-;       db 0x00
-;       db 10101110b
-;       dw 0x0000
-; irq8:
-;       dw isr8
-;       dw 0x0008
-;       db 0x00
-;       db 10101110b
-;       dw 0x0000
-; irq9:
-;       dw isr9
-;       dw 0x0008
-;       db 0x00
-;       db 10101110b
-;       dw 0x0000
-; irq10:
-;       dw isr10
-;       dw 0x0008
-;       db 0x00
-;       db 10101110b
-;       dw 0x0000
-; irq11:
-;       dw isr11
-;       dw 0x0008
-;       db 0x00
-;       db 10101110b
-;       dw 0x0000
-; irq12:
-;       dw isr12
-;       dw 0x0008
-;       db 0x00
-;       db 10101110b
-;       dw 0x0000
-; irq13:
-;       dw isr13
-;       dw 0x0008
-;       db 0x00
-;       db 10101110b
-;       dw 0x0000
-; irq14:
-;       dw isr14
-;       dw 0x0008
-;       db 0x00
-;       db 10101110b
-;       dw 0x0000
-; irq15:
-;       dw isr15
-;       dw 0x0008
-;       db 0x00
-;       db 10101110b
-;       dw 0x0000
-; irq16:
-;       dw isr16
-;       dw 0x0008
-;       db 0x00
-;       db 10101110b
-;       dw 0x0000
-; irq17:
-;       dw isr17
-;       dw 0x0008
-;       db 0x00
-;       db 10101110b
-;       dw 0x0000
-; irq18:
-;       dw isr18
-;       dw 0x0008
-;       db 0x00
-;       db 10101110b
-;       dw 0x0000
-; irq19:
-;       dw isr19
-;       dw 0x0008
-;       db 0x00
-;       db 10101110b
-;       dw 0x0000
-; irq20:
-;       dw isr20
-;       dw 0x0008
-;       db 0x00
-;       db 10101110b
-;       dw 0x0000
-; irq21:
-;       dw isr21
-;       dw 0x0008
-;       db 0x00
-;       db 10101110b
-;       dw 0x0000
-; irq22:
-;       dw isr22
-;       dw 0x0008
-;       db 0x00
-;       db 10101110b
-;       dw 0x0000
-; irq23:
-;       dw isr23
-;       dw 0x0008
-;       db 0x00
-;       db 10101110b
-;       dw 0x0000
-
-; idt_end:
-
-; idt_info:
-;     dw idt_end - idt_start - 1
-;     dd idt_start
-
-; global load_idt:function (load_idt.end - load_idt)
-; load_idt:
-;     lidt [idt_info]
-;     sti
-;     ret
-; .end:
-
-

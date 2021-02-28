@@ -3,6 +3,18 @@
 version = 3
 
 [[package]]
+name = "alloy"
+version = "0.0.1"
+dependencies = [
+ "bitflags",
+ "lazy_static",
+ "pc-keyboard",
+ "seq-macro",
+ "spin 0.7.1",
+ "volatile",
+]
+
+[[package]]
 name = "bitflags"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -24,15 +36,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c6f2d937e3b8d63449b01401e2bae4041bc9dd1129c2e3e0d239407cf6635ac"
 
 [[package]]
-name = "ros"
-version = "0.1.0"
-dependencies = [
- "bitflags",
- "lazy_static",
- "pc-keyboard",
- "spin 0.7.1",
- "volatile",
-]
+name = "seq-macro"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d5b3bd665f328d73d7079123bfbd14a6edd74187667b5c6f340adfc65ea9d25a"
 
 [[package]]
 name = "spin"

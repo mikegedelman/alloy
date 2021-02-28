@@ -1,5 +1,9 @@
+//! Wrap some common asm instructions in functions for ease of use/readability
+
+/// Port is mostly defined to support drivers::uart_16550, which
+/// was ported (ha) from phil-opp.blog and originaly used x86_64 crate's Ports
 pub struct Port {
-    port: u16
+    port: u16,
 }
 
 impl Port {
@@ -8,11 +12,11 @@ impl Port {
     }
 
     pub fn write(&mut self, value: u8) {
-        unsafe{ outb(self.port, value); }
+        outb(self.port, value);
     }
 
     pub fn read(&mut self) -> u8 {
-        unsafe{ inb(self.port) }
+        inb(self.port)
     }
 }
 
@@ -35,23 +39,33 @@ pub fn inb(port: u16) -> u8 {
             in("dx") port,
         );
     }
-     val
+    val
 }
 
 pub unsafe fn inw(port: u16) -> u16 {
     let val: u16;
     asm!(
-        "in ax, dx",
-        out("ax") val,
-        in("dx") port,
-     );
-     val
+       "in ax, dx",
+       out("ax") val,
+       in("dx") port,
+    );
+    val
 }
 
 pub fn enable_int() {
-    unsafe{ asm!("sti"); }
+    unsafe {
+        asm!("sti");
+    }
 }
 
 pub fn disable_int() {
-    unsafe{ asm!("cli"); }
+    unsafe {
+        asm!("cli");
+    }
+}
+
+pub fn hlt() {
+    unsafe {
+        asm!("hlt");
+    }
 }

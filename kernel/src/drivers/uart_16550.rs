@@ -20,12 +20,9 @@
 //! let data = serial_port.receive();
 //! ```
 
-
-
+use crate::cpu::Port;
 use bitflags::bitflags;
 use core::fmt;
-use crate::cpu::Port;
-
 
 macro_rules! wait_for {
     ($cond:expr) => {

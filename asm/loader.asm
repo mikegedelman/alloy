@@ -1,4 +1,4 @@
-extern kernel_main                            ; _main is defined elsewhere
+extern kernel_main
 global _loader
 
 ; This is the virtual base address of kernel space. It must be used to convert virtual
@@ -8,7 +8,7 @@ global _loader
 KERNEL_VIRTUAL_BASE equ 0xC0000000                  ; 3GB
 KERNEL_PAGE_NUMBER equ (KERNEL_VIRTUAL_BASE >> 22)  ; Page directory index of kernel's 4MB PTE.
 
- ; reserve initial kernel stack space -- that's 16k.
+; reserve initial kernel stack space -- that's 16k.
 STACKSIZE equ 0x4000
 
 section .data

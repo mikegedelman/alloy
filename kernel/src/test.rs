@@ -2,9 +2,9 @@
 //! just manully copy our tests to run into the run_tests() function.
 use crate::cpu::Port;
 
-#[cfg(feature="test")]
+#[cfg(feature = "test")]
 #[panic_handler]
-fn panic(info:  &::core::panic::PanicInfo) -> ! {
+fn panic(info: &::core::panic::PanicInfo) -> ! {
     serial_println!("[failed]\n");
     serial_println!("Error: {}\n", info);
     exit_qemu(QemuExitCode::Failed);
@@ -41,9 +41,7 @@ where
 pub fn run_tests() {
     // This can use a vec once we add memory management
     // Until then, bump the array size when adding tests to this
-    let tests: [&dyn Testable; 1] = [
-        &trivial_assertion
-    ];
+    let tests: [&dyn Testable; 1] = [&trivial_assertion];
 
     for test in &tests {
         test.run();
@@ -51,7 +49,6 @@ pub fn run_tests() {
 
     exit_qemu(QemuExitCode::Success);
 }
-
 
 fn trivial_assertion() {
     assert_eq!(1, 1);
