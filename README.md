@@ -109,7 +109,7 @@ export PREFIX="$HOME/opt/cross"  # you might want to change this:
 export TARGET=i686-elf           # I use $HOME/.local
 export PATH="$PREFIX/bin:$PATH"
 
-wget wget https://ftp.gnu.org/gnu/binutils/binutils-2.36.tar.xz
+wget https://ftp.gnu.org/gnu/binutils/binutils-2.36.tar.xz
 mkdir $HOME/src
 cd $HOME/src
 tar xvf binutils-2.36.tar.xz
