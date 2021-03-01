@@ -129,6 +129,7 @@ docker every time.
 
 ```
 git clone https://github.com/mikegedelman/alloy.git
+cd kernel && rustup component add rust-src && .. # would be nice to get rid of this
 make run
 ```
 
