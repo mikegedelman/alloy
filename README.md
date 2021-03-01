@@ -80,8 +80,7 @@ can figure out where to get these packages.
 
 ```
 brew install qemu nasm
-xcode-select --install  # This *should* install make. You could also
-                        # install it using brew
+xcode-select --install  # This *should* install make. You could also install it using brew
 ```
 
 **rust**
@@ -129,7 +128,7 @@ docker every time.
 
 ```
 git clone https://github.com/mikegedelman/alloy.git
-cd kernel && rustup component add rust-src && .. # would be nice to get rid of this
+cd kernel && rustup component add rust-src && cd .. # would be nice to get rid of this
 make run
 ```
 
