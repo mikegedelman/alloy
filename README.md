@@ -80,8 +80,7 @@ can figure out where to get these packages.
 
 ```
 brew install qemu nasm
-xcode-select --install  # This *should* install make. You could also
-                        # install it using brew
+xcode-select --install  # This *should* install make. You could also install it using brew
 ```
 
 **rust**
@@ -109,7 +108,7 @@ export PREFIX="$HOME/opt/cross"  # you might want to change this:
 export TARGET=i686-elf           # I use $HOME/.local
 export PATH="$PREFIX/bin:$PATH"
 
-wget wget https://ftp.gnu.org/gnu/binutils/binutils-2.36.tar.xz
+wget https://ftp.gnu.org/gnu/binutils/binutils-2.36.tar.xz
 mkdir $HOME/src
 cd $HOME/src
 tar xvf binutils-2.36.tar.xz
@@ -129,6 +128,7 @@ docker every time.
 
 ```
 git clone https://github.com/mikegedelman/alloy.git
+cd kernel && rustup component add rust-src && cd .. # would be nice to get rid of this
 make run
 ```
 
