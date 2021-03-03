@@ -1,13 +1,14 @@
 
+STAGE2_SRC := $(shell find stage2/src -type f -name "*.rs")
 KERNEL_SRC := $(shell find kernel/src -type f -name "*.rs")
 KERNEL_OBJ := kernel/target/x86-alloy/debug/liballoy.a
 ASM_OBJ := multiboot.o utils.o loader.o
 
 DOCKER := docker run -v $(shell pwd):/work -w /work mikegedelman/alloy:master
-LD := $(DOCKER) i686-elf-ld
+# LD := $(DOCKER) i686-elf-ld
 # If you want to build your own binutils and skip Docker, uncomment the following
 # line.
-# LD := i686-elf-ld
+LD := i686-elf-ld
 # The commented-out C stuff is laying around from previously using some C
 # files to test stuff or sketch out functionality before writing in Rust.
 # Leaving these around in case I want to do that again.
@@ -31,14 +32,14 @@ clean:
 # There's probably a better way to integrate cargo into this makefile.
 $(KERNEL_OBJ): $(KERNEL_SRC)
 	cd kernel && \
-	cargo build --target x86-alloy.json --features verbose && \
+	cargo build --target ../x86-alloy.json --features verbose && \
 	cd ..
 
 # There must be a better way to do this without having to mostly repeat
 # the above target
 test_obj: $(KERNEL_SRC)
 	cd kernel && \
-	cargo build --target x86-alloy.json --features test && \
+	cargo build --target ../x86-alloy.json --features test && \
 	cd ..
 
 # Assembly files
@@ -65,11 +66,11 @@ test: multiboot_test
 # To use these targets, change the first line of multiboot.ld to:
 # ENTRY(_loader)
 # This will be fixed eventually..
-# cd: multiboot
-# 	scripts/iso.sh alloy.bin
+cd: multiboot
+	scripts/iso.sh alloy.bin
 
-# run_cd: cd
-# 	qemu-system-i386 -cdrom alloy.bin
+run_cd: cd
+	qemu-system-i386 -cdrom alloy.iso
 
 # First: brew install bochs
 # bochs can be useful for specific debugging tasks, but generally
@@ -83,3 +84,30 @@ bochs: cd
 # the "build GCC" section before rebuilding
 docker:
 	docker build .
+
+# === Custom bootloader section (not used currently) ===
+# Build the bootloader
+boot.bin: asm/bootloader.asm
+	nasm -f bin -o boot.bin asm/bootloader.asm
+
+loader_stage2.o: asm/loader_stage2.asm
+	nasm -f elf32 -o loader_stage2.o asm/loader_stage2.asm
+
+stage2: $(STAGE2_SRC)
+	cd stage2 && \
+	cargo build --target ../x86-alloy.json --release && \
+	cd ..
+
+# Link the kernel into a flat binary
+alloy_stage2.bin: stage2 loader_stage2.o linker.ld  #-T linker.ld
+	$(LD) -T linker.ld -o alloy_stage2.bin loader_stage2.o
+
+# Make a floppy image containing our custom bootloader and kernel
+# For now, paste the kernel directly after the bootsector (no fs)
+floppy: stage2 loader_stage2.o boot.bin
+	dd if=/dev/zero of=floppy.img bs=1024 count=1440
+	dd if=boot.bin of=floppy.img seek=0 count=1 conv=notrunc
+	dd if=alloy_stage2.bin of=floppy.img seek=1 conv=notrunc
+
+run_floppy: floppy multiboot
+	qemu-system-i386 -fda floppy.img  -hda alloy.bin

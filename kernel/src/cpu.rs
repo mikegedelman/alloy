@@ -18,6 +18,10 @@ impl Port {
     pub fn read(&mut self) -> u8 {
         inb(self.port)
     }
+
+    pub fn read_word(&mut self) -> u16 {
+        inw(self.port)
+    }
 }
 
 pub fn outb(port: u16, value: u8) {
@@ -42,13 +46,15 @@ pub fn inb(port: u16) -> u8 {
     val
 }
 
-pub unsafe fn inw(port: u16) -> u16 {
+pub fn inw(port: u16) -> u16 {
     let val: u16;
-    asm!(
-       "in ax, dx",
-       out("ax") val,
-       in("dx") port,
-    );
+    unsafe {
+        asm!(
+        "in ax, dx",
+        out("ax") val,
+        in("dx") port,
+        );
+    }
     val
 }
 

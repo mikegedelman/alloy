@@ -25,7 +25,11 @@ BootPageDirectory:
     times (KERNEL_PAGE_NUMBER - 1) dd 0                 ; Pages before kernel space.
     ; This page directory entry defines a 4MB page containing the kernel.
     dd 0x00000083
-    times (1024 - KERNEL_PAGE_NUMBER - 1) dd 0  ; Pages after the kernel image.
+    dd 0x00000083 + 0x400000
+    dd 0x00000083 + (0x400000*2)
+    dd 0x00000083 + (0x400000*3)
+    dd 0x00000083 + (0x400000*4)
+    times (1024 - KERNEL_PAGE_NUMBER - 5) dd 0  ; Pages after the kernel image.
 
 ; setting up entry point for linker
 loader equ (_loader - 0xC0000000)
@@ -75,5 +79,11 @@ StartInHigherHalf:
 
 section .bss
 align 32
+
 stack:
     resb STACKSIZE      ; reserve 16k stack on a uint64_t boundary
+
+
+; global physical_mem_bitmap
+; physical_mem_bitmap:
+;     resb 1024*1024 ; *1024  ; reserve 1M for a bitmap of physical memory status

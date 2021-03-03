@@ -71,6 +71,4 @@ pub fn remap_int(offset1: u8, offset2: u8) {
         outb(PIC1_DATA, pic1_mask);
         outb(PIC2_DATA, pic2_mask);
     }
-
-    log!("Remapped PIC interrupt vectors.");
 }

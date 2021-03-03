@@ -4,11 +4,18 @@ global idt
 global idt_ptr
 global load_idt
 global io_wait
+global physical_mem_bitmap
 
 section .bss
-   idt: resb 256*6
-   idt_ptr: resb 6
-
+    idt:
+        align 4
+        resb 256*6
+    idt_ptr:
+        align 4
+        resb 6
+    physical_mem_bitmap:
+        align 4
+        resb 131072 ; 0x100000000 / 0x1000 / 8;
 
 section .text
 
@@ -83,7 +90,7 @@ extern isr_handler
 %macro handler_macro 1
     ; Commented instrs: we should probably be saving all of these segments and stuff,
     ; but we don't have a userspace right now, so it's ok for a minute
-    ; pusha
+    pusha
     ; mov ax, ds
     ; push eax
     ; mov ax, 0x10
@@ -93,17 +100,20 @@ extern isr_handler
 	; mov gs, ax
 
     mov  ebp, esp
+    ; mov eax, [esp + 4]
+    ; push eax
+    push dword [esp + 4]
     push %1
     ; cld
     call isr_handler
-    add esp, 4
+    add esp, 8
 
 	; pop eax
 	; mov ds, ax
 	; mov es, ax
 	; mov fs, ax
 	; mov gs, ax
-	; popa
+	popa
 	; add esp, 8 ; Cleans up the pushed error code and pushed ISR number
 	; cli
 	iret ; pops 5 things at once: CS, EIP, EFLAGS, SS, and ESP

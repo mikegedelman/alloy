@@ -15,8 +15,9 @@ fn send_eoi(irq: u32) {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn isr_handler(x: u32) {
+pub unsafe extern "C" fn isr_handler(x: u32, info: u32) {
     match x {
+        14 => panic!("Page fault at address: {:#x}", info),
         // Just for testing: asm!("int 50") should cause "sycall 50" to be printed
         50 => println!("syscall 50"),
         // IRQs
@@ -25,7 +26,11 @@ pub unsafe extern "C" fn isr_handler(x: u32) {
             let scancode = cpu::inb(0x60);
             ps2::process_scancode(scancode);
         }
-        _ => {}
+        _ => {
+            if x < 32 {
+                panic!("Unhandled CPU exception no: {} - code {}", x, info);
+            }
+        }
     }
     send_eoi(x);
 }

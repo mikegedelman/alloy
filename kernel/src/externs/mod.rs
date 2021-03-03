@@ -3,3 +3,4 @@
 //! they're defined in, to aid discoverability.
 
 pub mod utils_asm;
+pub mod loader;
