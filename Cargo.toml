@@ -1,0 +1,23 @@
+cargo-features = ["named-profiles"]
+
+[workspace]
+
+members = [
+    "kernel",
+    "stage2"
+]
+
+[profile.dev]
+panic = "abort"
+overflow-checks = false
+
+[profile.release]
+panic = "abort"
+overflow-checks = false
+lto = true
+
+[profile.release.package.stage2]
+inherits = "release"
+overflow-checks = false
+opt-level = 'z'  # Optimize for size.
+codegen-units = 1

@@ -1,5 +1,6 @@
 //! Ripped from: https://os.phil-opp.com/
 //! Replaced x86_64 Port with my own implementation of Port (cpu crate)
+//! Phil's code is MIT licensed
 //!
 //! Minimal support for uart_16550 serial I/O.
 //!

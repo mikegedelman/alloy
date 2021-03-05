@@ -1,4 +1,5 @@
 //! From https://raw.githubusercontent.com/phil-opp/blog_os/post-03/src/vga_buffer.rs
+//! His code is MIT licensed
 //! Thanks Phil!
 
 use core::fmt;

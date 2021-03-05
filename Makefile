@@ -1,8 +1,14 @@
 
-STAGE2_SRC := $(shell find stage2/src -type f -name "*.rs")
 KERNEL_SRC := $(shell find kernel/src -type f -name "*.rs")
-KERNEL_OBJ := kernel/target/x86-alloy/debug/liballoy.a
-ASM_OBJ := multiboot.o utils.o loader.o
+KERNEL_ASM := $(shell find kernel/asm -type f -name "*.asm")
+
+STAGE2_SRC := $(shell find stage2/src -type f -name "*.rs")
+STAGE2_ASM := $(shell find stage2/asm -type f -name "*.asm")
+
+KERNEL_DEBUG := kernel/target/x86-alloy/debug
+KERNEL_BUILD := $(KERNEL_DEBUG)/build
+KERNEL_OBJ := $(KERNEL_DEBUG)/liballoy.a
+ASM_OBJ :=$ $(KERNEL_BUILD)/loader.o $(KERNEL_BUILD)/multiboot.o $(KERNEL_BUILD)/utils.o
 
 DOCKER := docker run -v $(shell pwd):/work -w /work mikegedelman/alloy:master
 # LD := $(DOCKER) i686-elf-ld
@@ -16,13 +22,11 @@ LD := i686-elf-ld
 # C_SRC := idt.c
 # C_OBJ := idt.o
 
-all: multiboot
+all: alloy.bin
 
 clean:
-	cd kernel && \
 	cargo clean && \
-	cd ..
-	rm -rf *.bin *.o *.img isodir/
+	rm -rf *.bin *.o isodir/
 
 # Targets to build general kernel object files
 # $(C_OBJ): $(C_SRC)
@@ -31,34 +35,30 @@ clean:
 # Build our Rust kernel: cd into kernel dir and build from there.
 # There's probably a better way to integrate cargo into this makefile.
 $(KERNEL_OBJ): $(KERNEL_SRC)
-	cd kernel && \
-	cargo build --target ../x86-alloy.json --features verbose && \
-	cd ..
+	cargo build -p kernel --features verbose
 
 # There must be a better way to do this without having to mostly repeat
 # the above target
 test_obj: $(KERNEL_SRC)
-	cd kernel && \
-	cargo build --target ../x86-alloy.json --features test && \
-	cd ..
+	cargo build -p kernel --features test
 
 # Assembly files
-$(ASM_OBJ): asm/multiboot.asm asm/utils.asm asm/loader.asm
-	nasm -g -f elf32 asm/multiboot.asm -o multiboot.o
-	nasm -g -f elf32 asm/utils.asm -o utils.o
-	nasm -g -f elf32 asm/loader.asm -o loader.o
+$(ASM_OBJ): kernel/asm/multiboot.asm kernel/asm/utils.asm kernel/asm/loader.asm
+	nasm -g -f elf32 kernel/asm/multiboot.asm -o $(KERNEL_BUILD)/multiboot.o
+	nasm -g -f elf32 kernel/asm/utils.asm -o $(KERNEL_BUILD)/utils.o
+	nasm -g -f elf32 kernel/asm/loader.asm -o $(KERNEL_BUILD)/loader.o
 
 # Link the kernel into a multiboot format
 # Warning: Do *NOT* name this multiboot.bin. When qemu sees multiboot.bin in the current dir,
 # weird things seem to happen
-multiboot: $(ASM_OBJ) $(KERNEL_OBJ) $(BOOT_OBJ) # $(C_OBJ)
-	$(LD) -T multiboot.ld -o alloy.bin $(ASM_OBJ) $(KERNEL_OBJ)
+alloy.bin: $(ASM_OBJ) $(KERNEL_OBJ) $(BOOT_OBJ) # $(C_OBJ)
+	$(LD) -T kernel/multiboot.ld -o $(KERNEL_DEBUG)/alloy.bin $(ASM_OBJ) $(KERNEL_OBJ)
 
 multiboot_test: $(ASM_OBJ) test_obj $(BOOT_OBJ)
-	$(LD) -T multiboot.ld -o alloy-test.bin $(ASM_OBJ) $(KERNEL_OBJ)
+	$(LD) -T kernel/multiboot.ld -o alloy-test.bin $(ASM_OBJ) $(KERNEL_OBJ)
 
-run: multiboot
-	qemu-system-i386 -kernel alloy.bin
+run: alloy.bin
+	qemu-system-i386 -kernel $(KERNEL_DEBUG)/alloy.bin
 
 test: multiboot_test
 	scripts/test.sh alloy-test.bin
@@ -66,7 +66,7 @@ test: multiboot_test
 # To use these targets, change the first line of multiboot.ld to:
 # ENTRY(_loader)
 # This will be fixed eventually..
-cd: multiboot
+cd: alloy.bin
 	scripts/iso.sh alloy.bin
 
 run_cd: cd
@@ -109,5 +109,5 @@ floppy: stage2 loader_stage2.o boot.bin
 	dd if=boot.bin of=floppy.img seek=0 count=1 conv=notrunc
 	dd if=alloy_stage2.bin of=floppy.img seek=1 conv=notrunc
 
-run_floppy: floppy multiboot
+run_floppy: floppy alloy.bin
 	qemu-system-i386 -fda floppy.img  -hda alloy.bin

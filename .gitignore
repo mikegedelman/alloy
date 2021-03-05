@@ -5,3 +5,5 @@
 isodir/
 bochsout.txt
 c/
+.vscode/
+target/

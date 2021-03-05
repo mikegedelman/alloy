@@ -1,5 +1,7 @@
 //! Wrap some common asm instructions in functions for ease of use/readability
 
+/// Port is mostly defined to support drivers::uart_16550, which
+/// was ported (ha) from phil-opp.blog and originaly used x86_64 crate's Ports
 pub struct Port {
     port: u16,
 }
@@ -48,9 +50,9 @@ pub fn inw(port: u16) -> u16 {
     let val: u16;
     unsafe {
         asm!(
-            "in ax, dx",
-            out("ax") val,
-            in("dx") port,
+        "in ax, dx",
+        out("ax") val,
+        in("dx") port,
         );
     }
     val
@@ -71,36 +73,5 @@ pub fn disable_int() {
 pub fn hlt() {
     unsafe {
         asm!("hlt");
-    }
-}
-
-pub fn get_cr2() -> u32 {
-    let val: u32;
-    unsafe {
-        asm!(
-            "mov {0}, cr3",
-            out(reg) val
-        );
-    }
-    val
-}
-
-pub fn get_cr3() -> u32 {
-    let val: u32;
-    unsafe {
-        asm!(
-            "mov {0}, cr3",
-            out(reg) val
-        );//
-    }
-    val
-}
-
-pub fn set_cr3(val: u32) {
-    unsafe {
-        asm!(
-            "mov cr3, {0}",
-            in(reg) val
-        );
     }
 }

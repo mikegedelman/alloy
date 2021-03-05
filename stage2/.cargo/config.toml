@@ -5,5 +5,5 @@ build-std-features = ["compiler-builtins-mem"]
 
 
 [build]
-target = "x86-alloy.json"
-rustflags = ["-C", "relocation-model=static", "-g"]
+target = "x86-alloy"
+rustflags = ["-C", "relocation-model=static", "-g", "-C", "link-args=-no-pie"]

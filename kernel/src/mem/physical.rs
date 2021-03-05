@@ -23,6 +23,19 @@ fn frame_num_for_addr(addr: u32) -> usize {
     ((addr & 0xFFFFF000) / 0x1000) as usize
 }
 
+
+pub fn first_free_bit(byte: u8) -> u8 {
+    let output: u32;
+    unsafe {
+        asm!(
+            "bsf {0}, {1}",
+            out(reg) output,
+            in(reg) !byte as u32,
+        );
+    }
+    output as u8
+}
+
 impl PhysicalManager {
     pub fn new(bitmap: &'static mut [u8; PHYSICAL_BITMAP_SZ]) -> PhysicalManager {
         PhysicalManager {
@@ -31,7 +44,9 @@ impl PhysicalManager {
         }
     }
 
+
     pub fn load_multiboot_mmap(&mut self, mb_info: &MultibootInfo) {
+        // TODO: mark kernel physical memory as used
         // Assume all memory is reserved until we find out otherwise from multiboot.
         // This might be problematic, but we're erring on the safe side.
         for i in 0..PHYSICAL_BITMAP_SZ {
@@ -120,4 +135,20 @@ pub fn load_multiboot_mmap(mb_info: &MultibootInfo) {
 pub fn num_free_frames() -> u32 {
     let pmgr = PMGR.lock();
     pmgr.num_free_frames()
+}
+
+/// Reserve a frame for use; return its starting address
+/// Currently O(n). Not a huge deal but would be a problem if we were in 64-bit space.
+pub fn alloc() -> Option<u32> {
+    let mut pmgr = PMGR.lock();
+    let byte_with_free_frame_idx = match pmgr.bitmap.iter().position(|x| x < &0xFF) {
+        Some(x) => x,
+        None => { return None; },
+    } as u32;
+
+    let byte_with_free_frame = pmgr.bitmap[byte_with_free_frame_idx as usize];
+    let free_bit = first_free_bit(byte_with_free_frame as u8);
+    let frame: u32 = byte_with_free_frame_idx * 8 + free_bit as u32;
+    pmgr.reserve(frame as usize);
+    Some(frame * 0x1000)
 }

@@ -58,6 +58,8 @@ fn init() {
     term::disable_cursor();
 }
 
+use mem::PageDirFlags;
+
 /// Main entrypoint for our kernel from loader.asm
 #[cfg(not(feature = "test"))]
 #[no_mangle]
@@ -72,6 +74,11 @@ pub unsafe extern "C" fn kernel_main(multiboot_info_ptr: *const multiboot::Multi
 
     let freef = mem::physical::num_free_frames();
     log!("{} physical frames are free ({} MB)", freef, (freef * 0x1000) / 1024 / 1024);
+
+    // mem::init_kernel_page_dir();
+    // let cr3 = cpu::get_cr3();
+    // println!("cr3: {:#x}", cr3);
+    // mem::print_page_directory_entry(0x300);
 
     loop {
         cpu::hlt();

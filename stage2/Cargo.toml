@@ -1,0 +1,8 @@
+[lib]
+crate-type = ["staticlib"]
+
+[package]
+name = "stage2"
+version = "0.1.0"
+authors = ["Mike Gedelman <mgedelman@aledade.com>"]
+edition = "2018"

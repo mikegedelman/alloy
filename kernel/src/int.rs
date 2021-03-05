@@ -17,7 +17,10 @@ fn send_eoi(irq: u32) {
 #[no_mangle]
 pub unsafe extern "C" fn isr_handler(x: u32, info: u32) {
     match x {
-        14 => panic!("Page fault at address: {:#x}", info),
+        14 => {
+            let addr = cpu::get_cr2();
+            panic!("Page fault at address: {:#x}", addr);
+        }
         // Just for testing: asm!("int 50") should cause "sycall 50" to be printed
         50 => println!("syscall 50"),
         // IRQs
