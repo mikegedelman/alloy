@@ -124,9 +124,7 @@ pub unsafe fn read_sectors_direct(drive: DriveSelect, lba: u32, sectors: u8, mem
     disable_int();
     ata.ata_wait_bsy();
     let status = ata.read_command(drive, lba, sectors);
-    let error = ata.read_error();
-    serial_println!("status: {:#x}", status);
-    serial_println!("err: {:#x}", error);
+    // let error = ata.read_error();
     if status == 0 {
         return Err(AtaErr::InvalidDrive);
     }

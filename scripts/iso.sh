@@ -21,3 +21,4 @@ menuentry "alloy" {
 }
 EOF
 docker run -v $(pwd):/work -w /work mikegedelman/alloy:master grub-mkrescue -o alloy.iso isodir
+mv alloy.iso $2

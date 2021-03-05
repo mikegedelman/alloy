@@ -1,12 +1,13 @@
 use lazy_static::lazy_static;
 use spin::Mutex;
+use log::info;
 
-use crate::externs::loader::{PHYSICAL_BITMAP_SZ,physical_mem_bitmap};
+use super::virt::{BASE_VIRTUAL_ADDRESS,_4MB};
+use crate::externs::loader::{PHYSICAL_BITMAP_SZ,physical_mem_bitmap,kernel_start,kernel_end};
 use crate::multiboot::MultibootInfo;
 
 lazy_static! {
     static ref PMGR: Mutex<PhysicalManager> = Mutex::new(PhysicalManager::new(unsafe { &mut physical_mem_bitmap }));
-    // pub static ref ATA2: Mutex<AtaPio> = Mutex::new(AtaPio::new(0x170));
 }
 
 // 1 bit per 4KB page. 1024 * 1024 * 1024 / 4 * 1024 ->
@@ -46,7 +47,6 @@ impl PhysicalManager {
 
 
     pub fn load_multiboot_mmap(&mut self, mb_info: &MultibootInfo) {
-        // TODO: mark kernel physical memory as used
         // Assume all memory is reserved until we find out otherwise from multiboot.
         // This might be problematic, but we're erring on the safe side.
         for i in 0..PHYSICAL_BITMAP_SZ {
@@ -59,6 +59,16 @@ impl PhysicalManager {
             if mmap_entry.type_ == 1 { // We'll ignore type >1 - just free the stuff that mmap says is free
                 self.free_range(mmap_entry.addr as u32, mmap_entry.addr as u32 + mmap_entry.len as u32)
             }
+        }
+        self.reserve_kernel_frames();
+    }
+
+    fn reserve_kernel_frames(&mut self) {
+        unsafe {
+            let start = (&kernel_start as *const u32) as u32 - BASE_VIRTUAL_ADDRESS;
+            let end = (&kernel_end as *const u32) as u32 - BASE_VIRTUAL_ADDRESS;
+            info!("Kernel physical address range: {:#x} - {:#x}", start, end);
+            self.reserve_range(start, end);
         }
     }
 
@@ -151,4 +161,24 @@ pub fn alloc() -> Option<u32> {
     let frame: u32 = byte_with_free_frame_idx * 8 + free_bit as u32;
     pmgr.reserve(frame as usize);
     Some(frame * 0x1000)
+}
+
+pub fn alloc_contiguous_4mb() -> Option<u32> {
+    let mut pmgr = PMGR.lock();
+    for _4mb_frame in 0..1023 {
+        let mut used = false;
+        for idx in _4mb_frame*128..(_4mb_frame+1)*128 {
+            if pmgr.bitmap[idx] != 0 {
+                used = true;
+                break;
+            }
+        }
+        if !used {
+            let addr = (_4mb_frame * 1024 * 0x1000) as u32;
+            info!("Reserving physical memory range {:#x} - {:#x}", addr, addr + _4MB);
+            pmgr.reserve_range(addr, addr + _4MB);
+            return Some(addr)
+        }
+    }
+    None
 }

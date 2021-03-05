@@ -5,10 +5,11 @@ KERNEL_ASM := $(shell find kernel/asm -type f -name "*.asm")
 STAGE2_SRC := $(shell find stage2/src -type f -name "*.rs")
 STAGE2_ASM := $(shell find stage2/asm -type f -name "*.asm")
 
-KERNEL_DEBUG := kernel/target/x86-alloy/debug
-KERNEL_BUILD := $(KERNEL_DEBUG)/build
-KERNEL_OBJ := $(KERNEL_DEBUG)/liballoy.a
-ASM_OBJ :=$ $(KERNEL_BUILD)/loader.o $(KERNEL_BUILD)/multiboot.o $(KERNEL_BUILD)/utils.o
+TARGET := target/x86-alloy/debug
+BUILD := $(TARGET)/build
+KERNEL_OBJ := $(TARGET)/libkernel.a
+ASM_OBJ :=$ $(BUILD)/loader.o $(BUILD)/multiboot.o $(BUILD)/utils.o
+KERNEL := $(TARGET)/kernel.bin
 
 DOCKER := docker run -v $(shell pwd):/work -w /work mikegedelman/alloy:master
 # LD := $(DOCKER) i686-elf-ld
@@ -22,7 +23,7 @@ LD := i686-elf-ld
 # C_SRC := idt.c
 # C_OBJ := idt.o
 
-all: alloy.bin
+all: $(KERNEL)
 
 clean:
 	cargo clean && \
@@ -44,33 +45,37 @@ test_obj: $(KERNEL_SRC)
 
 # Assembly files
 $(ASM_OBJ): kernel/asm/multiboot.asm kernel/asm/utils.asm kernel/asm/loader.asm
-	nasm -g -f elf32 kernel/asm/multiboot.asm -o $(KERNEL_BUILD)/multiboot.o
-	nasm -g -f elf32 kernel/asm/utils.asm -o $(KERNEL_BUILD)/utils.o
-	nasm -g -f elf32 kernel/asm/loader.asm -o $(KERNEL_BUILD)/loader.o
+	nasm -g -f elf32 kernel/asm/multiboot.asm -o $(BUILD)/multiboot.o
+	nasm -g -f elf32 kernel/asm/utils.asm -o $(BUILD)/utils.o
+	nasm -g -f elf32 kernel/asm/loader.asm -o $(BUILD)/loader.o
 
 # Link the kernel into a multiboot format
 # Warning: Do *NOT* name this multiboot.bin. When qemu sees multiboot.bin in the current dir,
 # weird things seem to happen
-alloy.bin: $(ASM_OBJ) $(KERNEL_OBJ) $(BOOT_OBJ) # $(C_OBJ)
-	$(LD) -T kernel/multiboot.ld -o $(KERNEL_DEBUG)/alloy.bin $(ASM_OBJ) $(KERNEL_OBJ)
+$(KERNEL): $(ASM_OBJ) $(KERNEL_OBJ) $(BOOT_OBJ) kernel/multiboot.ld # $(C_OBJ)
+	$(LD) -T kernel/multiboot.ld -o $(TARGET)/kernel.bin $(ASM_OBJ) $(KERNEL_OBJ)
 
-multiboot_test: $(ASM_OBJ) test_obj $(BOOT_OBJ)
-	$(LD) -T kernel/multiboot.ld -o alloy-test.bin $(ASM_OBJ) $(KERNEL_OBJ)
+$(TARGET)/kernel-test.bin: $(ASM_OBJ) test_obj $(BOOT_OBJ)
+	$(LD) -T kernel/multiboot.ld -o $(TARGET)/kernel-test.bin $(ASM_OBJ) $(KERNEL_OBJ)
 
-run: alloy.bin
-	qemu-system-i386 -kernel $(KERNEL_DEBUG)/alloy.bin
+test_kernel: $(TARGET)/kernel-test.bin
 
-test: multiboot_test
-	scripts/test.sh alloy-test.bin
+run: $(KERNEL)
+	qemu-system-i386 -kernel $(KERNEL)
+
+test: test_kernel
+	scripts/test.sh $(TARGET)/kernel-test.bin
 
 # To use these targets, change the first line of multiboot.ld to:
 # ENTRY(_loader)
 # This will be fixed eventually..
-cd: alloy.bin
-	scripts/iso.sh alloy.bin
+$(TARGET)/alloy.iso: $(KERNEL)
+	scripts/iso.sh $(KERNEL) $(TARGET)
 
-run_cd: cd
-	qemu-system-i386 -cdrom alloy.iso
+cd: $(TARGET)/alloy.iso
+
+run_cd: $(TARGET)/
+	qemu-system-i386 -cdrom $(TARGET)/alloy.iso
 
 # First: brew install bochs
 # bochs can be useful for specific debugging tasks, but generally

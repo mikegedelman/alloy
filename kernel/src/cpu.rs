@@ -57,15 +57,11 @@ pub fn inw(port: u16) -> u16 {
 }
 
 pub fn enable_int() {
-    unsafe {
-        asm!("sti");
-    }
+    unsafe { asm!("sti"); }
 }
 
 pub fn disable_int() {
-    unsafe {
-        asm!("cli");
-    }
+    unsafe { asm!("cli"); }
 }
 
 pub fn hlt() {
@@ -85,22 +81,29 @@ pub fn get_cr2() -> u32 {
     val
 }
 
+#[allow(dead_code)]
 pub fn get_cr3() -> u32 {
     let val: u32;
     unsafe {
         asm!(
             "mov {0}, cr3",
             out(reg) val
-        );//
+        );
     }
     val
 }
 
-pub fn set_cr3(val: u32) {
-    unsafe {
-        asm!(
-            "mov cr3, {0}",
-            in(reg) val
-        );
-    }
+pub unsafe fn set_cr3(val: u32) {
+    asm!(
+        "mov cr3, {0}",
+        in(reg) val
+    );
+}
+
+pub unsafe fn invlpg(addr: u32) {
+    asm!(
+        "invlpg [{}]",
+        in(reg) &addr,
+        options(nostack),
+    );
 }

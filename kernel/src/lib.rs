@@ -1,22 +1,10 @@
 #![no_std]
 #![feature(asm)]
+#![feature(alloc_error_handler)]
 
-/// Log messages will be printed to the terminal if verbose feature
-/// is enabled. Eventually, this will probably route into a kernel
-/// log file somewhere
-/// Crate-wide should be defined before any other modules so that those
-/// modules can see them.
+#[allow(unused_imports)]
 #[macro_use]
-mod macros {
-    macro_rules! log {
-        ($($arg:tt)*) => (
-            #[cfg(feature = "verbose")]
-            {
-                println!($($arg)*);
-            }
-        );
-    }
-}
+extern crate alloc;
 
 /// term and serial modules are first so that other modules can see the
 /// println! and serial_println! macros
@@ -25,6 +13,9 @@ mod term;
 
 #[macro_use]
 mod serial;
+
+#[macro_use]
+mod logging;
 
 #[allow(dead_code)]
 #[allow(unused_unsafe)]
@@ -44,41 +35,47 @@ mod mem;
 mod test;
 
 /// Setup routines: load GDT, IDT, remap PIC, ..
-fn init() {
-    unsafe {
-        externs::utils_asm::load_gdt();
-        boot::setup_idt();
-        drivers::pic_8259::remap_int(32, 40);
-        cpu::enable_int();
-        // Don't log until interrupts are created for the first time.
-        // Our println! function is currently dumb and disables them and
-        // re-enables no matter what. TODO: handle this case
-        log!("Early init complete:\n  - loaded GDT and IDT\n  - remapped PIC interrupt vectors\n  - enabled interrupts");
-    }
+unsafe fn init(multiboot_info_ptr: *const multiboot::MultibootInfo, magic: u32) {
+    externs::utils_asm::load_gdt();
+    boot::setup_idt();
+    drivers::pic_8259::remap_int(32, 40);
+    cpu::enable_int();
     term::disable_cursor();
+
+    logging::init().unwrap();
+    // Don't log until interrupts are created for the first time.
+    // Our println! function is currently dumb and disables them and
+    // re-enables no matter what. TODO: handle this case
+    info!("Early init complete:\n  - loaded GDT and IDT\n  - remapped PIC interrupt vectors\n  - enabled interrupts");
+    assert_eq!(magic, multiboot::MAGIC, "Unexpected magic value {:#x} - expected {:#x}", magic, multiboot::MAGIC);
+
+
+    let multiboot_info: &multiboot::MultibootInfo = unsafe { &*multiboot_info_ptr };
+    mem::physical::load_multiboot_mmap(multiboot_info);
+
+    let freef = mem::physical::num_free_frames();
+    info!("{} physical frames are free - {} MB", freef, (freef * 0x1000) / 1024 / 1024);
+
+    mem::virt::init_kernel_page_dir();
+    mem::heap::init();
 }
 
-use mem::PageDirFlags;
+use log::info;
+
+use alloc::vec;
 
 /// Main entrypoint for our kernel from loader.asm
 #[cfg(not(feature = "test"))]
 #[no_mangle]
 pub unsafe extern "C" fn kernel_main(multiboot_info_ptr: *const multiboot::MultibootInfo, magic: u32) -> ! {
-    init();
-    assert_eq!(magic, multiboot::MAGIC, "Unexpected magic value {:#x} - expected {:#x}", magic, multiboot::MAGIC);
+    init(multiboot_info_ptr, magic);
 
-    let multiboot_info: &multiboot::MultibootInfo = &*multiboot_info_ptr;
-    mem::physical::load_multiboot_mmap(multiboot_info);
-
+    let z = vec![1, 2, 3];
     println!("Welcome to alloy!");
 
-    let freef = mem::physical::num_free_frames();
-    log!("{} physical frames are free ({} MB)", freef, (freef * 0x1000) / 1024 / 1024);
-
-    // mem::init_kernel_page_dir();
-    // let cr3 = cpu::get_cr3();
-    // println!("cr3: {:#x}", cr3);
-    // mem::print_page_directory_entry(0x300);
+    for i in z {
+        println!("{}", i);
+    }
 
     loop {
         cpu::hlt();
@@ -99,8 +96,8 @@ fn panic(info: &::core::panic::PanicInfo) -> ! {
 /// Main entrypoint for the kernel when in test mode
 #[cfg(feature = "test")]
 #[no_mangle]
-pub unsafe extern "C" fn kernel_main() -> ! {
-    init();
+pub unsafe extern "C" fn kernel_main(multiboot_info_ptr: *const multiboot::MultibootInfo, magic: u32) -> ! {
+    init(multiboot_info_ptr, magic);
     test::run_tests();
     loop {
         cpu::hlt();

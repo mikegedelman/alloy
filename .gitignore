@@ -4,6 +4,5 @@
 *.img
 isodir/
 bochsout.txt
-c/
 .vscode/
 target/

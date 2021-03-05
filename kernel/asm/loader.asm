@@ -76,12 +76,12 @@ StartInHigherHalf:
     call  kernel_main                  ; call kernel proper
     hlt                          ; halt machine should kernel return
 
-
 section .bss
 align 32
 
 stack:
     resb STACKSIZE      ; reserve 16k stack on a uint64_t boundary
+
 
 
 ; global physical_mem_bitmap

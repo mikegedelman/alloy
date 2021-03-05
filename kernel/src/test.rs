@@ -1,7 +1,12 @@
 //! We could probably use macros here to make things fancy but for now we'll
 //! just manully copy our tests to run into the run_tests() function.
+// use alloc::{Vec,vec};
+use alloc::vec::Vec;
+use alloc::boxed::Box;
+
 use crate::cpu::Port;
 use crate::drivers::ata;
+use crate::mem;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -39,9 +44,11 @@ fn panic(info: &::core::panic::PanicInfo) -> ! {
 }
 
 pub fn run_tests() {
-    // This can use a vec once we add memory management
-    // Until then, bump the array size when adding tests to this
-    let tests: [&dyn Testable; 2] = [&test_read_invalid_hdd, &test_bsf];
+    let mut tests: Vec<Box<dyn Testable>> = vec![
+        Box::new(&test_read_invalid_hdd),
+        Box::new(&test_bsf),
+        Box::new(&test_allocate_kernel_page),
+    ];
 
     for test in &tests {
         test.run();
@@ -91,4 +98,17 @@ fn test_read_invalid_hdd() {
     }
     // TODO: identify is being weird
     // ata::identify(ata::DriveSelect::Slave).unwrap();
+}
+
+/// Allocate a 4MB page and verify we can write to the
+/// beginning and end of it
+fn test_allocate_kernel_page() {
+    let addr = mem::virt::alloc_kernel_page();
+    unsafe {
+        let test = addr as *mut u32;
+        *test = 0xdeadbeef;
+        let test2 = (addr + (4*1024*1024)-4) as *mut u32;
+        *test2 = 0xdeadbeef;
+    }
+    mem::virt::free_kernel_page(addr);
 }
