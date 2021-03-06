@@ -14,6 +14,10 @@ SECTIONS {
 
     kernel_start = ALIGN(4K);
    .text : AT(ADDR(.text) - 0xC0000000) {
+        . = ALIGN(4);
+        LONG(0x1BADB002)
+        LONG(0x00000003)
+        LONG(0xE4524FFB)
        *(.text)
        *(.rodata*)
    }

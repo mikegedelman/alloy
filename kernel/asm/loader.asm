@@ -32,6 +32,7 @@ BootPageDirectory:
     times (1024 - KERNEL_PAGE_NUMBER - 5) dd 0  ; Pages after the kernel image.
 
 ; setting up entry point for linker
+section .multiboot.text
 loader equ (_loader - 0xC0000000)
 global loader
 _loader:

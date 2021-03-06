@@ -1,5 +1,5 @@
-[lib]
-crate-type = ["staticlib"]
+# [lib]
+# crate-type = ["staticlib"]
 
 [package]
 name = "kernel"

@@ -46,12 +46,18 @@ working. I've worked around it using a feature flag for the time being.
 - [x] Print text to VGA buffer
 - [x] Ability to write tests
 - [x] Load GDT
-- [x] Enable interrupts
+- [x] Load IDT, enable interrupts
 - [x] Handle keyboard input
 - [x] Higher half kernel
-- [] Handle CPU exceptions, double faults
-- [] Memory management
-- [] Custom bootloader
+- [x] Memory management
+- [ ] Userspace + exec() - in progress - *very* rudimentary version is working
+- [ ] Handle more CPU exceptions, double faults
+- [ ] Build out system calls
+- [ ] Port newlib
+- [ ] Finish stage2 legacy bootloader (rudimentary stage1 works)
+- [ ] Implement a heap for the kerne to remove the linked_list_allocator dependency
+- [ ] EFI bootloader
+- [ ] Coerce rust-lld to work so I can stop using gcc ld manually 👺
 
 ### Prerequisites
 
