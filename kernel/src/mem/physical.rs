@@ -1,13 +1,14 @@
 use lazy_static::lazy_static;
-use spin::Mutex;
 use log::info;
+use spin::Mutex;
 
-use super::virt::{BASE_VIRTUAL_ADDRESS,_4MB};
-use crate::externs::loader::{PHYSICAL_BITMAP_SZ,physical_mem_bitmap,kernel_start,kernel_end};
+use super::virt::{BASE_VIRTUAL_ADDRESS, _4MB};
+use crate::externs::loader::{kernel_end, kernel_start, physical_mem_bitmap, PHYSICAL_BITMAP_SZ};
 use crate::multiboot::MultibootInfo;
 
 lazy_static! {
-    static ref PMGR: Mutex<PhysicalManager> = Mutex::new(PhysicalManager::new(unsafe { &mut physical_mem_bitmap }));
+    static ref PMGR: Mutex<PhysicalManager> =
+        Mutex::new(PhysicalManager::new(unsafe { &mut physical_mem_bitmap }));
 }
 
 // 1 bit per 4KB page. 1024 * 1024 * 1024 / 4 * 1024 ->
@@ -23,7 +24,6 @@ struct PhysicalManager {
 fn frame_num_for_addr(addr: u32) -> usize {
     ((addr & 0xFFFFF000) / 0x1000) as usize
 }
-
 
 pub fn first_free_bit(byte: u8) -> u8 {
     let output: u32;
@@ -45,7 +45,6 @@ impl PhysicalManager {
         }
     }
 
-
     pub fn load_multiboot_mmap(&mut self, mb_info: &MultibootInfo) {
         // Assume all memory is reserved until we find out otherwise from multiboot.
         // This might be problematic, but we're erring on the safe side.
@@ -56,8 +55,12 @@ impl PhysicalManager {
 
         // Multiboot *says* it's guaranteed to give you all available RAM via mmap
         for mmap_entry in mb_info.iter_mmap() {
-            if mmap_entry.type_ == 1 { // We'll ignore type >1 - just free the stuff that mmap says is free
-                self.free_range(mmap_entry.addr as u32, mmap_entry.addr as u32 + mmap_entry.len as u32)
+            if mmap_entry.type_ == 1 {
+                // We'll ignore type >1 - just free the stuff that mmap says is free
+                self.free_range(
+                    mmap_entry.addr as u32,
+                    mmap_entry.addr as u32 + mmap_entry.len as u32,
+                )
             }
         }
         self.reserve_kernel_frames();
@@ -84,14 +87,14 @@ impl PhysicalManager {
         let hi_frame_bit = hi_frame_num % 8;
         self.bitmap[hi_frame_byte] = self.bitmap[hi_frame_byte] & (0xFF >> hi_frame_bit);
 
-        for frame_byte in lo_frame_byte+1..hi_frame_byte {
+        for frame_byte in lo_frame_byte + 1..hi_frame_byte {
             self.bitmap[frame_byte] = 0;
         }
         self.num_free += hi_frame_num as u32 - lo_frame_num as u32;
     }
 
     pub fn num_free_frames(&self) -> u32 {
-        return self.num_free
+        return self.num_free;
     }
 
     pub fn reserve_range(&mut self, lo_address: u32, hi_address: u32) {
@@ -106,7 +109,7 @@ impl PhysicalManager {
         let hi_frame_bit = hi_frame_num % 8;
         self.bitmap[hi_frame_byte] = self.bitmap[hi_frame_byte] | (0xFF >> hi_frame_bit);
 
-        for frame_byte in lo_frame_byte+1..hi_frame_byte {
+        for frame_byte in lo_frame_byte + 1..hi_frame_byte {
             self.bitmap[frame_byte] = 0xFF;
         }
         self.num_free -= hi_frame_num as u32 - lo_frame_num as u32;
@@ -153,7 +156,9 @@ pub fn alloc() -> Option<u32> {
     let mut pmgr = PMGR.lock();
     let byte_with_free_frame_idx = match pmgr.bitmap.iter().position(|x| x < &0xFF) {
         Some(x) => x,
-        None => { return None; },
+        None => {
+            return None;
+        }
     } as u32;
 
     let byte_with_free_frame = pmgr.bitmap[byte_with_free_frame_idx as usize];
@@ -167,7 +172,7 @@ pub fn alloc_contiguous_4mb() -> Option<u32> {
     let mut pmgr = PMGR.lock();
     for _4mb_frame in 0..1023 {
         let mut used = false;
-        for idx in _4mb_frame*128..(_4mb_frame+1)*128 {
+        for idx in _4mb_frame * 128..(_4mb_frame + 1) * 128 {
             if pmgr.bitmap[idx] != 0 {
                 used = true;
                 break;
@@ -175,9 +180,13 @@ pub fn alloc_contiguous_4mb() -> Option<u32> {
         }
         if !used {
             let addr = (_4mb_frame * 1024 * 0x1000) as u32;
-            info!("Reserving physical memory range {:#x} - {:#x}", addr, addr + _4MB);
+            info!(
+                "Reserving physical memory range {:#x} - {:#x}",
+                addr,
+                addr + _4MB
+            );
             pmgr.reserve_range(addr, addr + _4MB);
-            return Some(addr)
+            return Some(addr);
         }
     }
     None

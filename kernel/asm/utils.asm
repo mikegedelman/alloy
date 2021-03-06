@@ -84,6 +84,18 @@ _2:
 io_wait.end:
     nop
 
+extern _syscall
+; syscall handler for interrupt 0x80 gets special treatment
+global int128
+int128:
+    mov ebp, esp
+    push ebx
+    push eax
+    call _syscall
+    pop eax
+    pop ebx
+    iret
+
 ; This macro creates a routine that will call our isr_handler function
 ; in Rust, passing the number of the interrupt recieved.
 extern isr_handler
@@ -376,8 +388,6 @@ global int126
 int126: handler_macro 126
 global int127
 int127: handler_macro 127
-global int128
-int128: handler_macro 128
 global int129
 int129: handler_macro 129
 global int130

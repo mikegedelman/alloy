@@ -1,10 +1,13 @@
 #![no_std]
 #![feature(asm)]
 #![feature(alloc_error_handler)]
+#![feature(rustc_private)]
 
 #[allow(unused_imports)]
 #[macro_use]
 extern crate alloc;
+
+extern crate compiler_builtins;
 
 /// term and serial modules are first so that other modules can see the
 /// println! and serial_println! macros
@@ -25,9 +28,9 @@ mod boot;
 mod cpu;
 mod externs;
 mod int;
-mod multiboot;
 #[allow(dead_code)]
 mod mem;
+mod multiboot;
 
 /// This module will only be compiled in if we've specified
 /// --features test to cargo build.
@@ -47,14 +50,23 @@ unsafe fn init(multiboot_info_ptr: *const multiboot::MultibootInfo, magic: u32) 
     // Our println! function is currently dumb and disables them and
     // re-enables no matter what. TODO: handle this case
     info!("Early init complete:\n  - loaded GDT and IDT\n  - remapped PIC interrupt vectors\n  - enabled interrupts");
-    assert_eq!(magic, multiboot::MAGIC, "Unexpected magic value {:#x} - expected {:#x}", magic, multiboot::MAGIC);
+    assert_eq!(
+        magic,
+        multiboot::MAGIC,
+        "Unexpected magic value {:#x} - expected {:#x}",
+        magic,
+        multiboot::MAGIC
+    );
 
-
-    let multiboot_info: &multiboot::MultibootInfo = unsafe { &*multiboot_info_ptr };
+    let multiboot_info: &multiboot::MultibootInfo = &*multiboot_info_ptr;
     mem::physical::load_multiboot_mmap(multiboot_info);
 
     let freef = mem::physical::num_free_frames();
-    info!("{} physical frames are free - {} MB", freef, (freef * 0x1000) / 1024 / 1024);
+    info!(
+        "{} physical frames are free - {} MB",
+        freef,
+        (freef * 0x1000) / 1024 / 1024
+    );
 
     mem::virt::init_kernel_page_dir();
     mem::heap::init();
@@ -62,20 +74,32 @@ unsafe fn init(multiboot_info_ptr: *const multiboot::MultibootInfo, magic: u32) 
 
 use log::info;
 
-use alloc::vec;
+// use alloc::vec;
+
+use goblin::elf::Elf;
+use mem::virt::PageDirFlags;
 
 /// Main entrypoint for our kernel from loader.asm
 #[cfg(not(feature = "test"))]
 #[no_mangle]
-pub unsafe extern "C" fn kernel_main(multiboot_info_ptr: *const multiboot::MultibootInfo, magic: u32) -> ! {
+pub unsafe extern "C" fn kernel_main(
+    multiboot_info_ptr: *const multiboot::MultibootInfo,
+    magic: u32,
+) -> ! {
     init(multiboot_info_ptr, magic);
-
-    let z = vec![1, 2, 3];
     println!("Welcome to alloy!");
 
-    for i in z {
-        println!("{}", i);
-    }
+    let file = drivers::ata::read_sectors_vec(drivers::ata::DriveSelect::Master, 0, 1).unwrap();
+    let bin = Elf::parse(&file).unwrap();
+    let prog_header = &bin.program_headers[0];
+
+    let phys_addr = mem::physical::alloc_contiguous_4mb().unwrap();
+
+    mem::virt::VirtualManager::alloc_4mb(prog_header.p_vaddr as u32 & 0xFFC00000, phys_addr, PageDirFlags::WRITE | PageDirFlags::PRESENT | PageDirFlags::_4M_PAGE);
+    compiler_builtins::mem::memcpy(prog_header.p_vaddr as *mut u8, file.as_ptr(), prog_header.p_filesz as usize);
+    println!("loaded hello binary");
+    asm!("jmp {}", in(reg) bin.header.e_entry as u32);
+    println!("program exited");
 
     loop {
         cpu::hlt();
@@ -96,7 +120,10 @@ fn panic(info: &::core::panic::PanicInfo) -> ! {
 /// Main entrypoint for the kernel when in test mode
 #[cfg(feature = "test")]
 #[no_mangle]
-pub unsafe extern "C" fn kernel_main(multiboot_info_ptr: *const multiboot::MultibootInfo, magic: u32) -> ! {
+pub unsafe extern "C" fn kernel_main(
+    multiboot_info_ptr: *const multiboot::MultibootInfo,
+    magic: u32,
+) -> ! {
     init(multiboot_info_ptr, magic);
     test::run_tests();
     loop {

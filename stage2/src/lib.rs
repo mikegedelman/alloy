@@ -30,7 +30,8 @@ pub extern "C" fn stage2_main() {
 #[cfg(not(feature = "test"))]
 #[panic_handler]
 fn panic(info: &::core::panic::PanicInfo) -> ! {
-    loop { //
+    loop {
+        //
         cpu::hlt();
     }
 }

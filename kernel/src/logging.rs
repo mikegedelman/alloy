@@ -1,4 +1,4 @@
-use log::{Record, Level, Metadata};
+use log::{Level, Metadata, Record};
 
 struct TermLogger;
 
@@ -9,7 +9,7 @@ impl log::Log for TermLogger {
 
     fn log(&self, record: &Record) {
         if self.enabled(record.metadata()) {
-            #[cfg(feature="test")]
+            #[cfg(feature = "test")]
             serial_println!("{} - {}", record.level(), record.args());
         }
     }
@@ -17,11 +17,10 @@ impl log::Log for TermLogger {
     fn flush(&self) {}
 }
 
-use log::{SetLoggerError, LevelFilter};
+use log::{LevelFilter, SetLoggerError};
 
 static LOGGER: TermLogger = TermLogger;
 
 pub fn init() -> Result<(), SetLoggerError> {
-    log::set_logger(&LOGGER)
-        .map(|()| log::set_max_level(LevelFilter::Info))
+    log::set_logger(&LOGGER).map(|()| log::set_max_level(LevelFilter::Info))
 }

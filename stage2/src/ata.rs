@@ -1,6 +1,6 @@
 //! ATA PIO driver
 
-use crate::cpu::{enable_int, disable_int, Port};
+use crate::cpu::{disable_int, enable_int, Port};
 
 const COMMAND_READ: u8 = 0x20;
 const COMMAND_IDENTIFY: u8 = 0xEC;
@@ -9,7 +9,6 @@ const STATUS_ERR: u8 = 1;
 const STATUS_DRQ: u8 = 1 << 3;
 const STATUS_DRF: u8 = 1 << 5;
 const STATUS_BSY: u8 = 1 << 7;
-
 
 pub struct AtaPio {
     data: Port,
@@ -51,7 +50,6 @@ pub enum DriveSelect {
 
 // static mut ATA1: AtaPio = AtaPio::new(0x1F0);
 
-
 impl AtaPio {
     pub fn new(base: u16) -> AtaPio {
         AtaPio {
@@ -72,7 +70,8 @@ impl AtaPio {
             DriveSelect::Slave => 0xF0,
         };
 
-        self.drive_select.write(drive_select | ((lba >> 24) & 0xF) as u8);
+        self.drive_select
+            .write(drive_select | ((lba >> 24) & 0xF) as u8);
         self.sectors.write(sectors);
         self.lba_lo.write(lba as u8);
         self.lba_mid.write((lba >> 8) as u8);
@@ -80,7 +79,9 @@ impl AtaPio {
         self.command.write(COMMAND_READ);
 
         // 400ns delay. See: https://wiki.osdev.org/ATA_PIO_Mode#400ns_delays
-        for _ in 0..14 { self.command.read(); }
+        for _ in 0..14 {
+            self.command.read();
+        }
         self.command.read()
     }
 
@@ -102,7 +103,6 @@ impl AtaPio {
     }
 }
 
-
 // pub fn identify(drive: DriveSelect) -> Result<(), AtaErr> {
 //     disable_int();
 //     let mut ata = ATA1;
@@ -111,10 +111,13 @@ impl AtaPio {
 //     Ok(())
 // }
 
-
-
-pub unsafe fn read_sectors_direct(ata: &mut AtaPio, drive: DriveSelect, lba: u32, sectors: u8, mem_ptr: *mut u8) -> Result<(), AtaErr>
-{
+pub unsafe fn read_sectors_direct(
+    ata: &mut AtaPio,
+    drive: DriveSelect,
+    lba: u32,
+    sectors: u8,
+    mem_ptr: *mut u8,
+) -> Result<(), AtaErr> {
     // Cast mem pointer to a pointer to an array
     // let mem = mem_ptr as *mut [u16; 256];
     let mut mem = mem_ptr as *mut u16;

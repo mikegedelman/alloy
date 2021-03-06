@@ -57,11 +57,15 @@ pub fn inw(port: u16) -> u16 {
 }
 
 pub fn enable_int() {
-    unsafe { asm!("sti"); }
+    unsafe {
+        asm!("sti");
+    }
 }
 
 pub fn disable_int() {
-    unsafe { asm!("cli"); }
+    unsafe {
+        asm!("cli");
+    }
 }
 
 pub fn hlt() {

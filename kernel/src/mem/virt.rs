@@ -1,12 +1,11 @@
-use lazy_static::lazy_static;
-use spin::Mutex;
 use bitflags::bitflags;
+use lazy_static::lazy_static;
 use log::info;
+use spin::Mutex;
 
 use super::physical;
 use crate::cpu;
-use crate::externs::loader::{kernel_start,kernel_end};
-
+use crate::externs::loader::{kernel_end, kernel_start};
 
 pub const BASE_VIRTUAL_ADDRESS: u32 = 0xC0000000;
 pub const _4MB: u32 = 4 * 1024 * 1024;
@@ -19,13 +18,14 @@ lazy_static! {
 //         Mutex::new(KernelPageDirectory{ entries: [0u32; 1024] });
 // }
 
-static mut KERNEL_PAGE_DIRECTORY: KernelPageDirectory = KernelPageDirectory{ entries: [0u32; 1024] };
+static mut KERNEL_PAGE_DIRECTORY: KernelPageDirectory = KernelPageDirectory {
+    entries: [0u32; 1024],
+};
 
 #[repr(C, align(4096))]
 struct KernelPageDirectory {
-    pub entries: [u32; 1024]
+    pub entries: [u32; 1024],
 }
-
 
 bitflags! {
     pub struct PageDirFlags: u32 {
@@ -39,7 +39,6 @@ bitflags! {
         const _4M_PAGE = 1 << 7;
     }
 }
-
 
 bitflags! {
     struct PageFlags: u32 {
@@ -62,8 +61,12 @@ pub struct VirtualManager {
 
 impl VirtualManager {
     pub fn new() -> VirtualManager {
-        let end_of_kernel_virtual = unsafe { ((&kernel_end as *const u32) as u32 & 0xFFC00000) + _4MB };
-        VirtualManager { end_of_kernel_virtual, page_directory: unsafe { &mut KERNEL_PAGE_DIRECTORY } }
+        let end_of_kernel_virtual =
+            unsafe { ((&kernel_end as *const u32) as u32 & 0xFFC00000) + _4MB };
+        VirtualManager {
+            end_of_kernel_virtual,
+            page_directory: unsafe { &mut KERNEL_PAGE_DIRECTORY },
+        }
     }
 
     pub fn alloc_kernel_page(&mut self) -> u32 {
@@ -83,16 +86,20 @@ impl VirtualManager {
 
     /// Return the physical memory address of the kernel page directory
     pub fn page_dir_addr(&self) -> u32 {
-        self.page_directory.entries.as_ptr() as u32  - BASE_VIRTUAL_ADDRESS
+        self.page_directory.entries.as_ptr() as u32 - BASE_VIRTUAL_ADDRESS
     }
 
-    fn alloc_4mb(virtual_addr: u32, physical_addr: u32, flags: PageDirFlags) {
+    pub fn alloc_4mb(virtual_addr: u32, physical_addr: u32, flags: PageDirFlags) {
         let pagedir_num = virtual_addr >> 22;
-        info!("Allocating 4mb pagedir at addr {:#x}, physical {:#x}", virtual_addr, physical_addr);
+        info!(
+            "Allocating 4mb pagedir at addr {:#x}, physical {:#x}",
+            virtual_addr, physical_addr
+        );
 
         unsafe {
             // let mut pagedir = KERNEL_PAGE_DIRECTORY.lock();
-            KERNEL_PAGE_DIRECTORY.entries[pagedir_num as usize] = page_directory_entry(physical_addr, flags);
+            KERNEL_PAGE_DIRECTORY.entries[pagedir_num as usize] =
+                page_directory_entry(physical_addr, flags);
         }
     }
 
@@ -117,13 +124,20 @@ impl VirtualManager {
 
     pub fn print_page_directory_entry(&self, idx: u32) {
         let entry: u32 = self.get_entry(idx as usize);
-        println!("Page dir entry: {:#x}, flags {:#?}", entry & 0xFFFFF000, PageDirFlags::from_bits_truncate(entry));
+        println!(
+            "Page dir entry: {:#x}, flags {:#?}",
+            entry & 0xFFFFF000,
+            PageDirFlags::from_bits_truncate(entry)
+        );
     }
 }
 
 fn page_directory_entry(addr: u32, flags: PageDirFlags) -> u32 {
     if (addr % 0x400000) != 0 {
-        panic!("Invalid page directory physical address: must be 4MB-aligned: {:#x}", addr);
+        panic!(
+            "Invalid page directory physical address: must be 4MB-aligned: {:#x}",
+            addr
+        );
     }
 
     addr | flags.bits()
@@ -150,16 +164,15 @@ pub unsafe fn init_kernel_page_dir() {
     let kernel_size = end - start;
 
     if kernel_size > _4MB {
-        let addtl_pages = (kernel_size + _4MB-1) / _4MB;
+        let addtl_pages = (kernel_size + _4MB - 1) / _4MB;
         info!("Mapping {} additional pages for the kernel", addtl_pages);
         for i in 0..addtl_pages {
             let idx = kernel_pagedir_num + i as usize;
-            vmgr.write_entry(idx, page_directory_entry(_4MB*i, flags));
+            vmgr.write_entry(idx, page_directory_entry(_4MB * i, flags));
         }
     }
     load_page_directory(vmgr.page_dir_addr());
 }
-
 
 pub fn alloc_kernel_page() -> u32 {
     let mut vmgr = VMGR.lock();

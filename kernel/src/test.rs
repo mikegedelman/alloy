@@ -1,8 +1,8 @@
 //! We could probably use macros here to make things fancy but for now we'll
 //! just manully copy our tests to run into the run_tests() function.
 // use alloc::{Vec,vec};
-use alloc::vec::Vec;
 use alloc::boxed::Box;
+use alloc::vec::Vec;
 
 use crate::cpu::Port;
 use crate::drivers::ata;
@@ -48,6 +48,7 @@ pub fn run_tests() {
         Box::new(&test_read_invalid_hdd),
         Box::new(&test_bsf),
         Box::new(&test_allocate_kernel_page),
+        Box::new(&test_syscall),
     ];
 
     for test in &tests {
@@ -107,8 +108,22 @@ fn test_allocate_kernel_page() {
     unsafe {
         let test = addr as *mut u32;
         *test = 0xdeadbeef;
-        let test2 = (addr + (4*1024*1024)-4) as *mut u32;
+        let test2 = (addr + (4 * 1024 * 1024) - 4) as *mut u32;
         *test2 = 0xdeadbeef;
     }
     mem::virt::free_kernel_page(addr);
 }
+
+// fn test_syscall() {
+//     unsafe {
+//         let buf: [u8; 3] = [104, 105, 0];
+//         asm!(
+//             "mov ebx, [{0}]",
+//             "mov eax, {callno}",
+//             "int {syscall}",
+//             syscall = const 0x80,
+//             callno = const 1,
+//             in(reg) &buf,
+//         );
+//     }
+// }
