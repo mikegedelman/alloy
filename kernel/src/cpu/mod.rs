@@ -1,5 +1,8 @@
 //! Wrap some common asm instructions in functions for ease of use/readability
 
+pub mod interrupts;
+pub mod idt;
+
 pub struct Port {
     port: u16,
 }

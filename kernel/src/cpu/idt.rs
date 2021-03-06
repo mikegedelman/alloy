@@ -1,4 +1,4 @@
-//! Handle early-setup stuff like setting up IDT.
+//! Set up the IDT
 use seq_macro::seq;
 
 use crate::externs::utils_asm;
@@ -22,20 +22,18 @@ fn build_idt() -> [IdtEntry; 256] {
 
 /// Load the global static variables idt and idt_ptr,
 /// and then instruct the CPU to load the idt from idt_ptr.
-pub fn setup_idt() {
-    unsafe {
-        utils_asm::idt = build_idt();
+pub unsafe fn init() {
+    utils_asm::idt = build_idt();
 
-        let base_ptr: *const IdtEntry = utils_asm::idt.as_ptr();
-        utils_asm::idt_ptr = IdtPtr {
-            limit: (core::mem::size_of::<IdtEntry>() as u16 * 256) - 1,
-            base: base_ptr as u32,
-        };
+    let base_ptr: *const IdtEntry = utils_asm::idt.as_ptr();
+    utils_asm::idt_ptr = IdtPtr {
+        limit: (core::mem::size_of::<IdtEntry>() as u16 * 256) - 1,
+        base: base_ptr as u32,
+    };
 
-        // Might be nice to be able to call asm! here, but it wants a
-        // compile-time constant for lidt, and the address of idt_ptr
-        // isn't known until link time. The lidt instruction takes
-        // an immediate offset.
-        utils_asm::load_idt();
-    }
+    // Might be nice to be able to call asm! here, but it wants a
+    // compile-time constant for lidt, and the address of idt_ptr
+    // isn't known until link time. The lidt instruction takes
+    // an immediate offset.
+    utils_asm::load_idt();
 }

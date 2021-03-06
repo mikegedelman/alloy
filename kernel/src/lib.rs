@@ -9,25 +9,17 @@ extern crate alloc;
 
 extern crate compiler_builtins;
 
-/// term and serial modules are first so that other modules can see the
+/// io module is first so that other modules can see the
 /// println! and serial_println! macros
 #[macro_use]
-mod term;
-
-#[macro_use]
-mod serial;
-
-#[macro_use]
-mod logging;
+mod io;
 
 #[allow(dead_code)]
 #[allow(unused_unsafe)]
 mod drivers;
 
-mod boot;
 mod cpu;
 mod externs;
-mod int;
 #[allow(dead_code)]
 mod mem;
 mod multiboot;
@@ -40,12 +32,12 @@ mod test;
 /// Setup routines: load GDT, IDT, remap PIC, ..
 unsafe fn init(multiboot_info_ptr: *const multiboot::MultibootInfo, magic: u32) {
     externs::utils_asm::load_gdt();
-    boot::setup_idt();
+    cpu::idt::init();
     drivers::pic_8259::remap_int(32, 40);
     cpu::enable_int();
-    term::disable_cursor();
+    io::term::disable_cursor();
 
-    logging::init().unwrap();
+    io::logging::init().unwrap();
     // Don't log until interrupts are created for the first time.
     // Our println! function is currently dumb and disables them and
     // re-enables no matter what. TODO: handle this case
