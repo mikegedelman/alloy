@@ -88,7 +88,7 @@ impl VirtualManager {
     pub fn page_dir_addr(&self) -> u32 {
         // This approach only works because our page directory lands in the first 4MB of
         // kernel memory, so we know its specific offset. If we put a page table in a
-        // new page we alloc'ed somewher else, we'll have to figure out the original
+        // new page we alloc'ed somewhere else, we'll have to figure out the original
         // base address for that page and use that for translation.
         self.page_directory.entries.as_ptr() as u32 - BASE_VIRTUAL_ADDRESS
     }
@@ -156,6 +156,7 @@ unsafe fn invlpg(addr: u32) {
     cpu::invlpg(addr);
 }
 
+/// Initialize the page directory to be used for kernel code
 pub unsafe fn init_kernel_page_dir() {
     let kernel_pagedir_num = (BASE_VIRTUAL_ADDRESS >> 22) as usize;
     let flags = PageDirFlags::PRESENT | PageDirFlags::WRITE | PageDirFlags::_4M_PAGE;
@@ -175,7 +176,10 @@ pub unsafe fn init_kernel_page_dir() {
             vmgr.write_entry(idx, page_directory_entry(_4MB * i, flags));
         }
     }
+
+    // Reserve the physical frames containing the page directory
     load_page_directory(vmgr.page_dir_addr());
+
 }
 
 pub fn alloc_kernel_page() -> u32 {

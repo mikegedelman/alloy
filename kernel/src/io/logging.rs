@@ -9,7 +9,6 @@ impl log::Log for TermLogger {
 
     fn log(&self, record: &Record) {
         if self.enabled(record.metadata()) {
-            #[cfg(feature = "test")]
             serial_println!("{} - {}", record.level(), record.args());
         }
     }

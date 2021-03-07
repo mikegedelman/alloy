@@ -1,4 +1,5 @@
 //! PS/2 Driver
+//! This code mostly from phil-opp https://os.phil-opp.com/hardware-interrupts/
 
 use lazy_static::lazy_static;
 use spin::Mutex;

@@ -108,7 +108,6 @@ fn test_read_ustar() {
 
     // Test opening large file
     let file = ustar.open("kernel").unwrap();
-    serial_println!("{:#?}", file);
     file.read().unwrap();
 
     match ustar.open("other file") {

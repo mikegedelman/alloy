@@ -3,37 +3,33 @@
 #![feature(asm)]
 #![feature(alloc_error_handler)]
 #![feature(rustc_private)]
+#![feature(const_raw_ptr_to_usize_cast)]
 
-#[allow(unused_imports)]
-#[macro_use]
-extern crate alloc;
+#[allow(unused_imports)] #[macro_use] extern crate alloc;
 extern crate compiler_builtins;
 
 /// io module is first so that other modules can see the
 /// println! and serial_println! macros
-#[macro_use]
-mod io;
+#[macro_use] mod io;
 
 #[allow(dead_code)]
-#[allow(unused_unsafe)]
-mod drivers;
+#[allow(unused_unsafe)] mod drivers;
 
 mod cpu;
 mod externs;
-#[allow(dead_code)]
-mod mem;
+#[allow(dead_code)] mod mem;
 mod multiboot;
 mod fs;
+mod proc;
 mod string;
 
 /// This module will only be compiled in if we've specified
 /// --features test to cargo build.
-#[cfg(feature = "test")]
-mod test;
+#[cfg(feature = "test")] mod test;
 
 /// Setup routines: load GDT, IDT, remap PIC, ..
 unsafe fn init(multiboot_info_ptr: *const multiboot::MultibootInfo, magic: u32) {
-    externs::utils_asm::load_gdt();
+    cpu::gdt::init();
     cpu::idt::init();
     drivers::pic_8259::remap_int(32, 40);
     cpu::enable_int();
@@ -77,8 +73,8 @@ pub unsafe extern "C" fn kernel_main(
 ) -> ! {
     init(multiboot_info_ptr, magic);
     println!("Welcome to alloy!");
-    println!("hi2");
 
+    proc::exec::exec("hello_rs");
 
     loop {
         cpu::hlt();

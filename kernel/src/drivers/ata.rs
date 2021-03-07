@@ -1,12 +1,12 @@
 //! ATA PIO driver
+//! It's dumb and slow, but it's enough to load stuff from disk
 
 use lazy_static::lazy_static;
 use spin::Mutex;
 use alloc::vec::Vec;
 
 use crate::drivers::{BlockErr,BlockRead};
-use crate::cpu::{disable_int, enable_int, Port};
-use crate::externs::utils_asm;
+use crate::cpu::{disable_int, enable_int, Port, io_wait};
 
 const COMMAND_READ: u8 = 0x20;
 const COMMAND_IDENTIFY: u8 = 0xEC;
@@ -30,12 +30,6 @@ pub struct AtaPio {
     // selecting is slow
 }
 
-
-// pub enum BusSelect {
-//     Bus1,
-//     Bus2,
-// }
-
 #[derive(Copy, Clone, Debug)]
 pub enum DriveSelect {
     Master,
@@ -44,6 +38,9 @@ pub enum DriveSelect {
 
 lazy_static! {
     pub static ref ATA1: Mutex<AtaPio> = Mutex::new(AtaPio::new(0x1F0));
+    // I wanted to make logic that would allow you to dynamically select different ATA buses,
+    // but this macro creates completely new types for each ref, so the logic got ugly. Maybe
+    // doable with generics
     // pub static ref ATA2: Mutex<AtaPio> = Mutex::new(AtaPio::new(0x170));
 }
 
@@ -137,7 +134,9 @@ impl BlockRead for AtaBlockDevice {
     }
 }
 
-
+/// Read sectors directly into mem_ptr
+/// This seemed like a good idea at the time, and it might be someday for mmap'ping files,
+/// but's unsafe and useless in our current iteration
 pub unsafe fn read_sectors_direct(
     drive: DriveSelect,
     lba: usize,
@@ -150,7 +149,7 @@ pub unsafe fn read_sectors_direct(
     disable_int();
     ata.ata_wait_bsy();
     let status = ata.read_command(&drive, lba, sectors);
-    // let error = ata.read_error();
+
     if status == 0 {
         return Err(BlockErr::InvalidDrive);
     }
@@ -167,7 +166,7 @@ pub unsafe fn read_sectors_direct(
 
         for _ in 0..256 {
             let data = ata.read_word();
-            utils_asm::io_wait();
+            io_wait();
 
             *mem = data;
             mem = mem.offset(1);
@@ -177,6 +176,10 @@ pub unsafe fn read_sectors_direct(
     Ok(())
 }
 
+/// Read sectors starting at lba into a vec
+/// This turned out to be an *awful* idea. Due to how vecs work, roughly 2x the
+/// amount of data being read is actually allocated on the heap.
+/// TODO: This should read in to a buffer, not a vec.
 pub unsafe fn read_sectors_vec(
     drive: &DriveSelect,
     lba: usize,
@@ -187,7 +190,7 @@ pub unsafe fn read_sectors_vec(
     disable_int();
     ata.ata_wait_bsy();
     let status = ata.read_command(drive, lba, sectors);
-    // let error = ata.read_error();
+
     if status == 0 {
         return Err(BlockErr::InvalidDrive);
     }
@@ -205,7 +208,7 @@ pub unsafe fn read_sectors_vec(
 
         for _ in 0..256 {
             let data = ata.read_word();
-            utils_asm::io_wait();
+            io_wait();
 
             ret.push(data as u8);
             ret.push((data >> 8) as u8);

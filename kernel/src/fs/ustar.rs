@@ -5,8 +5,6 @@ use alloc::string::ToString;
 use crate::fs::{BlockRead,File,FileErr};
 use crate::string;
 
-
-
 // https://wiki.osdev.org/USTAR
 #[derive(Clone, Copy, Debug)]
 #[repr(C, packed(2))]
@@ -29,8 +27,8 @@ pub struct UStarHeader {
 }
 
 impl UStarHeader {
-    // The last character is always a space for some dumb reason
     fn get_size(&self) -> u64 {
+        // The last character is always a space for some dumb reason - chop it off
          oct2bin(&self.file_size[..11])
     }
 }
@@ -65,6 +63,7 @@ impl<R: Clone + BlockRead> UStarFs<R> {
         UStarIterator { fs: self.clone(), next_header_block: 0 }
     }
 
+    #[allow(dead_code)]
     pub fn ls(&self) -> Vec<String> {
         self.entries().map(|(_, hdr)| string::cstr_to_string(&hdr.file_name)).collect()
     }
@@ -113,5 +112,3 @@ pub fn oct2bin(ustar_oct: &[u8]) -> u64 {
     }
     n
 }
-
-// pub fn sector_info(

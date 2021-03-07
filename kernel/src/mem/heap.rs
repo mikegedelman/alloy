@@ -1,5 +1,4 @@
-//! Usage of linked_list_allocator is temporary
-//! TODO: Implement a heap by hand
+//! Just use phil-opp's linked_list_allocator for now
 use linked_list_allocator::LockedHeap;
 use log::info;
 

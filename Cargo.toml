@@ -4,6 +4,8 @@ cargo-features = ["named-profiles"]
 
 members = [
     "kernel",
+    "alloy_std",
+    "hello_rs"
 ]
 
 [profile.dev]
@@ -14,9 +16,3 @@ overflow-checks = false
 panic = "abort"
 overflow-checks = false
 lto = true
-
-[profile.release.package.stage2]
-inherits = "release"
-overflow-checks = false
-opt-level = 'z'  # Optimize for size.
-codegen-units = 1

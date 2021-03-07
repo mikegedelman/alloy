@@ -1,8 +1,7 @@
 //! Commands for the 8259 PIC (Programmable Interrupt Controller)
 //! Adapted from https://wiki.osdev.org/8259_PIC
 
-use crate::cpu::{inb, outb};
-use crate::externs::utils_asm::io_wait;
+use crate::cpu::{inb, outb, io_wait};
 
 const PIC1: u16 = 0x20; // IO base address for master PIC
 const PIC2: u16 = 0xA0; // IO base address for slave PIC

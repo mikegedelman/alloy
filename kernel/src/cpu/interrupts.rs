@@ -7,6 +7,9 @@ use crate::cpu;
 use crate::drivers::pic_8259;
 use crate::drivers::ps2;
 
+/// Send EOI "end of interrupt" to the PIC to let it know
+/// we've processed it. Without this, it will just keep
+/// handing us the same scancode for keypresses, for example.
 fn send_eoi(irq: u32) {
     if irq >= 8 {
         pic_8259::pic2_eoi();
@@ -15,8 +18,9 @@ fn send_eoi(irq: u32) {
     pic_8259::pic1_eoi();
 }
 
-fn syscall_write(data: *const u8) {
-    println!("syscall 1, data addr: {:#x}", data as u32);
+/// Print the *null-terminated* string stored at pointer data
+fn syscall_print(data: *const u8) {
+    info!("print string addr: {:#x}", data as u32);
     unsafe {
         let mut x = data;
         loop {
@@ -28,19 +32,31 @@ fn syscall_write(data: *const u8) {
             x = x.offset(1);
         }
     }
-    println!("done");
 }
 
+/// Dummy function for _exit
+fn syscall_exit() {
+    cpu::disable_int();
+    info!("Program exited");
+    // Clean up stuff for the current PID - dealloc the page we created
+    loop { cpu::hlt(); }
+}
+
+/// Primary syscall handler: route to the proper logic and pass along data
 #[no_mangle]
 pub unsafe extern "C" fn _syscall(num: u32, data: *const u8) {
     match num {
-        0x1 => syscall_write(data),
+        0x1 => syscall_print(data),
+        0x2 => syscall_exit(),
         _ => {
             info!("syscall {} not supported", num);
         }
     }
 }
 
+/// Our handler for all interrupts except syscall (int 0x80)
+/// We handle a few interrupts specially and just drop the rest
+/// See utils.asm for how this is called
 #[no_mangle]
 pub unsafe extern "C" fn isr_handler(x: u32, info: u32) {
     match x {

@@ -2,7 +2,10 @@
 
 pub mod interrupts;
 pub mod idt;
+pub mod gdt;
 
+/// A port allows us to create a named variable for a 16-bit port
+/// which can make code more readable
 pub struct Port {
     port: u16,
 }
@@ -60,9 +63,9 @@ pub fn inw(port: u16) -> u16 {
 }
 
 pub fn enable_int() {
-    // unsafe {
-    //     asm!("sti");
-    // }
+    unsafe {
+        asm!("sti");
+    }
 }
 
 pub fn disable_int() {
@@ -113,4 +116,15 @@ pub unsafe fn invlpg(addr: u32) {
         in(reg) &addr,
         options(nostack),
     );
+}
+
+// TODO: this is probably dumb
+pub fn io_wait() {
+    unsafe {
+        asm!(
+            "nop",
+            "nop",
+            "nop",
+        );
+    }
 }

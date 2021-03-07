@@ -1,3 +1,5 @@
+; This file was pulled from osdev wiki and tweaked
+; https://wiki.osdev.org/Higher_Half_x86_Bare_Bones_(Backup)
 extern kernel_main
 global _loader
 
@@ -59,6 +61,10 @@ _loader:
 StartInHigherHalf:
     ; Unmap the identity-mapped first 4MB of physical address space. It should not be needed
     ; anymore.
+    ; MG: I commented this out because I still need to access the first 4MB during boot to read
+    ; the multiboot info. I do this before setting up the kernel's page directory. When I set
+    ; that up later, I'll unmap this space.
+
     ; mov dword [BootPageDirectory], 0
     ; invlpg [0]
 
@@ -82,9 +88,3 @@ align 32
 
 stack:
     resb STACKSIZE      ; reserve 16k stack on a uint64_t boundary
-
-
-
-; global physical_mem_bitmap
-; physical_mem_bitmap:
-;     resb 1024*1024 ; *1024  ; reserve 1M for a bitmap of physical memory status

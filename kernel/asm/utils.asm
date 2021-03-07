@@ -1,91 +1,8 @@
 bits 32
 
-global idt
-global idt_ptr
-global load_idt
-global io_wait
-global physical_mem_bitmap
-
-section .bss
-    idt:
-        align 4
-        resb 256*6
-    idt_ptr:
-        align 4
-        resb 6
-    physical_mem_bitmap:
-        align 4
-        resb 131072 ; 0x100000000 / 0x1000 / 8;
-
 section .text
 
-gdt_start:
-
-gdt_null:
-    dd 0x0
-    dd 0x0
-
-gdt_code:
-    dw 0xffff
-    dw 0x0
-    db 0x0
-    db 10011010b
-    db 11001111b
-    db 0x0
-
-gdt_data:
-    dw 0xffff
-    dw 0x0
-    db 0x0
-    db 10010010b
-    db 11001111b
-    db 0x0
-
-gdt_end:
-
-gdt_descriptor:
-    dw gdt_end - gdt_start
-    dd gdt_start
-
-
-global load_gdt:function (load_gdt.end - load_gdt)
-load_gdt:
-    cli
-    lgdt[gdt_descriptor]
-    mov eax, cr0
-    or eax, 0x1
-    mov cr0, eax
-    jmp 0x08:.flush ; 0x08 is the offset to our code segment: Far jump!
-.flush:
-    ; Reload data segment registers:
-    mov ax, 0x10 ; 0x10 points at the new data selector
-    mov ds, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax
-    mov ss, ax
-    ret
-.end:
-
-; Load the idt referenced by idt_ptr, which should have been loaded by the kernel
-; before this function is called.
-load_idt:
-    lidt [idt_ptr]
-    ret
-.end:
-
-; TODO: this is probably fragile
-io_wait:
-    jmp _1
-_1:
-    jmp _2
-_2:
-    ret
-io_wait.end:
-    nop
-
 extern _syscall
-; syscall handler for interrupt 0x80 gets special treatment
 global int128
 int128:
     mov ebp, esp
@@ -387,6 +304,7 @@ int125: handler_macro 125
 global int126
 int126: handler_macro 126
 global int127
+; int128 is defined specially above
 int127: handler_macro 127
 global int129
 int129: handler_macro 129

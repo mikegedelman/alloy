@@ -6,3 +6,4 @@ isodir/
 bochsout.txt
 .vscode/
 target/
+kernel/resources/*.tar

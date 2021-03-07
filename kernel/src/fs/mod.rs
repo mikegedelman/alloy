@@ -4,14 +4,12 @@ use crate::drivers::{BlockRead, BlockErr};
 
 pub mod ustar;
 
-
 #[derive(Clone, Debug)]
 pub struct File<R: BlockRead> {
-    block_reader: R,
-    lba: usize,
-    size: usize,
-    name: String,
-    // cur_pos: usize,
+    pub block_reader: R,
+    pub lba: usize,
+    pub size: usize,
+    pub name: String,
 }
 
 impl<R: BlockRead> File<R> {
