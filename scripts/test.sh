@@ -2,6 +2,7 @@
 # Adapted from: https://os.phil-opp.com/testing/
 
 qemu-system-i386 -kernel $1 \
+		-hda kernel/resources/test/test.tar \
 		-device isa-debug-exit,iobase=0xf4,iosize=0x04 \
 		-serial stdio \
 		-display none

@@ -1,5 +1,5 @@
 #![no_std]
-#![no_main]
+// #![no_main]
 #![feature(asm)]
 #![feature(alloc_error_handler)]
 #![feature(rustc_private)]
@@ -7,7 +7,6 @@
 #[allow(unused_imports)]
 #[macro_use]
 extern crate alloc;
-
 extern crate compiler_builtins;
 
 /// io module is first so that other modules can see the
@@ -24,6 +23,8 @@ mod externs;
 #[allow(dead_code)]
 mod mem;
 mod multiboot;
+mod fs;
+mod string;
 
 /// This module will only be compiled in if we've specified
 /// --features test to cargo build.
@@ -45,7 +46,7 @@ unsafe fn init(multiboot_info_ptr: *const multiboot::MultibootInfo, magic: u32) 
     info!("Early init complete:\n  - loaded GDT and IDT\n  - remapped PIC interrupt vectors\n  - enabled interrupts");
     assert_eq!(
         magic,
-        multiboot::MAGIC,
+        multiboot::MAGIC, //
         "Unexpected magic value {:#x} - expected {:#x}",
         magic,
         multiboot::MAGIC
@@ -66,11 +67,6 @@ unsafe fn init(multiboot_info_ptr: *const multiboot::MultibootInfo, magic: u32) 
 }
 
 use log::info;
-
-// use alloc::vec;
-
-use goblin::elf::Elf;
-use mem::virt::PageDirFlags;
 
 /// Main entrypoint for our kernel from loader.asm
 #[cfg(not(feature = "test"))]

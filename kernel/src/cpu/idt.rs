@@ -23,7 +23,8 @@ fn build_idt() -> [IdtEntry; 256] {
 /// Load the global static variables idt and idt_ptr,
 /// and then instruct the CPU to load the idt from idt_ptr.
 pub unsafe fn init() {
-    utils_asm::idt = build_idt();
+    let idt = build_idt();
+    utils_asm::idt = idt;
 
     let base_ptr: *const IdtEntry = utils_asm::idt.as_ptr();
     utils_asm::idt_ptr = IdtPtr {

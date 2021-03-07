@@ -4,4 +4,5 @@ extern "C" {
     pub static mut physical_mem_bitmap: [u8; PHYSICAL_BITMAP_SZ];
     pub static kernel_start: u32;
     pub static kernel_end: u32;
+    pub static _stack: *const u8;
 }

@@ -4,6 +4,7 @@ use lazy_static::lazy_static;
 use spin::Mutex;
 use alloc::vec::Vec;
 
+use crate::drivers::{BlockErr,BlockRead};
 use crate::cpu::{disable_int, enable_int, Port};
 use crate::externs::utils_asm;
 
@@ -29,20 +30,13 @@ pub struct AtaPio {
     // selecting is slow
 }
 
-#[derive(Debug)]
-pub enum AtaErr {
-    ReadError,
-    DriveFaultError,
-    InvalidDrive,
-    NotAta,
-    UnknownError,
-}
 
 // pub enum BusSelect {
 //     Bus1,
 //     Bus2,
 // }
 
+#[derive(Copy, Clone, Debug)]
 pub enum DriveSelect {
     Master,
     Slave,
@@ -67,7 +61,7 @@ impl AtaPio {
         }
     }
 
-    fn read_command(&mut self, drive: DriveSelect, lba: u32, sectors: u8) -> u8 {
+    fn read_command(&mut self, drive: &DriveSelect, lba: usize, sectors: u8) -> u8 {
         let drive_select = match drive {
             DriveSelect::Master => 0xE0,
             DriveSelect::Slave => 0xF0,
@@ -106,7 +100,7 @@ impl AtaPio {
     }
 }
 
-// pub fn identify(drive: DriveSelect) -> Result<(), AtaErr> {
+// pub fn identify(drive: DriveSelect) -> Result<(), BlockErr> {
 //     disable_int();
 //     let mut ata = ATA1;
 //     ata.identify_command(drive).unwrap();
@@ -114,27 +108,57 @@ impl AtaPio {
 //     Ok(())
 // }
 
+#[derive(Copy, Clone, Debug)]
+pub struct AtaBlockDevice {
+    drive: DriveSelect,
+}
+
+impl AtaBlockDevice {
+    pub fn new(drive: DriveSelect) -> AtaBlockDevice {
+        AtaBlockDevice {
+            drive
+        }
+    }
+}
+
+impl BlockRead for AtaBlockDevice {
+    // TODO: don't read to a vec. Due to the way vecs work, this ends up taking up ~2x
+    // as much memory as the file.
+    fn read_blocks(&self, lba: usize, num_blocks: usize) -> Result<Vec<u8>, BlockErr> {
+        let mut blocks: Vec<u8> = vec![];
+        let mut total_sectors_to_read = num_blocks;
+        while total_sectors_to_read > 0 {
+            let cur_sectors_to_read = core::cmp::min(total_sectors_to_read, 255) as u8;
+            let mut read_blocks = unsafe {  read_sectors_vec(&self.drive, lba, cur_sectors_to_read)? };
+            blocks.append(&mut read_blocks);
+            total_sectors_to_read -= cur_sectors_to_read as usize;
+        }
+        Ok(blocks)
+    }
+}
+
+
 pub unsafe fn read_sectors_direct(
     drive: DriveSelect,
-    lba: u32,
+    lba: usize,
     sectors: u8,
     mem_ptr: *mut u8,
-) -> Result<(), AtaErr> {
+) -> Result<(), BlockErr> {
     let mut ata = ATA1.lock();
     let mut mem = mem_ptr as *mut u16;
 
     disable_int();
     ata.ata_wait_bsy();
-    let status = ata.read_command(drive, lba, sectors);
+    let status = ata.read_command(&drive, lba, sectors);
     // let error = ata.read_error();
     if status == 0 {
-        return Err(AtaErr::InvalidDrive);
+        return Err(BlockErr::InvalidDrive);
     }
     if (status & 1) == 1 {
-        return Err(AtaErr::ReadError);
+        return Err(BlockErr::ReadError);
     }
     if (status & STATUS_DRF) == 1 {
-        return Err(AtaErr::DriveFaultError);
+        return Err(BlockErr::DriveFaultError);
     }
 
     for _ in 0..sectors {
@@ -154,10 +178,10 @@ pub unsafe fn read_sectors_direct(
 }
 
 pub unsafe fn read_sectors_vec(
-    drive: DriveSelect,
-    lba: u32,
+    drive: &DriveSelect,
+    lba: usize,
     sectors: u8,
-) -> Result<Vec<u8>, AtaErr> {
+) -> Result<Vec<u8>, BlockErr> {
     let mut ata = ATA1.lock();
 
     disable_int();
@@ -165,13 +189,13 @@ pub unsafe fn read_sectors_vec(
     let status = ata.read_command(drive, lba, sectors);
     // let error = ata.read_error();
     if status == 0 {
-        return Err(AtaErr::InvalidDrive);
+        return Err(BlockErr::InvalidDrive);
     }
     if (status & 1) == 1 {
-        return Err(AtaErr::ReadError);
+        return Err(BlockErr::ReadError);
     }
     if (status & STATUS_DRF) == 1 {
-        return Err(AtaErr::DriveFaultError);
+        return Err(BlockErr::DriveFaultError);
     }
 
     let mut ret: Vec<u8> = vec![];

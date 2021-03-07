@@ -86,6 +86,10 @@ impl VirtualManager {
 
     /// Return the physical memory address of the kernel page directory
     pub fn page_dir_addr(&self) -> u32 {
+        // This approach only works because our page directory lands in the first 4MB of
+        // kernel memory, so we know its specific offset. If we put a page table in a
+        // new page we alloc'ed somewher else, we'll have to figure out the original
+        // base address for that page and use that for translation.
         self.page_directory.entries.as_ptr() as u32 - BASE_VIRTUAL_ADDRESS
     }
 
