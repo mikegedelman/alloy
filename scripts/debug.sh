@@ -1,9 +1,11 @@
 #!/bin/bash
 
-qemu-system-i386 -kernel target/x86-alloy/debug/kernel.bin -hda kernel/resources/hello_rust.tar -S -s & \
+KERNEL="../target/x86-alloy/debug/boot"
+HDA="-hda kernel/resources/hello_rust.tar"
+qemu-system-i386 -kernel $KERNEL -S -s & \
 QEMU_PID=$! && \
-gdb target/x86-alloy/debug/kernel.bin  \
+gdb $KERNEL  \
         -ex 'target remote localhost:1234' \
-        -ex 'layout src' \
-        -ex 'break kernel_main' \
+        -ex 'layout asm' \
+        -ex 'break *0x00100010' \
         -ex 'continue' && kill $QEMU_PID

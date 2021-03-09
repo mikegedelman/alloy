@@ -3,6 +3,7 @@ ENTRY(_start)
 SECTIONS {
     . = 1M;
 
+    kernel_start = .;
     .text :
     {
         . = ALIGN(4);
@@ -11,4 +12,5 @@ SECTIONS {
         LONG(0xE4524FFB)
         *(.text)
     }
+    kernel_end = .;
 }

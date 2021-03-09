@@ -132,48 +132,18 @@ impl BlockRead for AtaBlockDevice {
         }
         Ok(blocks)
     }
-}
 
-/// Read sectors directly into mem_ptr
-/// This seemed like a good idea at the time, and it might be someday for mmap'ping files,
-/// but's unsafe and useless in our current iteration
-pub unsafe fn read_sectors_direct(
-    drive: DriveSelect,
-    lba: usize,
-    sectors: u8,
-    mem_ptr: *mut u8,
-) -> Result<(), BlockErr> {
-    let mut ata = ATA1.lock();
-    let mut mem = mem_ptr as *mut u16;
-
-    disable_int();
-    ata.ata_wait_bsy();
-    let status = ata.read_command(&drive, lba, sectors);
-
-    if status == 0 {
-        return Err(BlockErr::InvalidDrive);
-    }
-    if (status & 1) == 1 {
-        return Err(BlockErr::ReadError);
-    }
-    if (status & STATUS_DRF) == 1 {
-        return Err(BlockErr::DriveFaultError);
-    }
-
-    for _ in 0..sectors {
-        ata.ata_wait_bsy();
-        ata.ata_wait_drq();
-
-        for _ in 0..256 {
-            let data = ata.read_word();
-            io_wait();
-
-            *mem = data;
-            mem = mem.offset(1);
-        }
-    }
-    reenable_int();
-    Ok(())
+    // fn read(&self, lba: usize, num_blocks: usize, buf: &mut [u8]) -> Result<usize, BlockErr> {
+    //     let mut total_sectors_to_read = num_blocks;
+    //     let mut cur_sector = 0;
+    //     let bytes_read = 0;
+    //     while total_sectors_to_read > 0 {
+    //         let cur_sectors_to_read = core::cmp::min(total_sectors_to_read, 255) as u8;
+    //         unsafe {  read_sectors(&self.drive, lba, cur_sectors_to_read, &mut buf[cur_sector*512..(cur_sector+1)*512])? };
+    //         total_sectors_to_read -= cur_sectors_to_read as usize;
+    //         cur_setor += 1
+    //     }
+    // }
 }
 
 /// Read sectors starting at lba into a vec
@@ -216,4 +186,42 @@ pub unsafe fn read_sectors_vec(
     }
     reenable_int();
     Ok(ret)
+}
+
+pub unsafe fn read_sectors(
+    drive: &DriveSelect,
+    lba: usize,
+    sectors: usize,
+    buf: &mut [u8],
+) -> Result<usize, BlockErr> {
+    let mut ata = ATA1.lock();
+
+    disable_int();
+    ata.ata_wait_bsy();
+    let status = ata.read_command(drive, lba, sectors as u8);
+
+    if status == 0 {
+        return Err(BlockErr::InvalidDrive);
+    }
+    if (status & 1) == 1 {
+        return Err(BlockErr::ReadError);
+    }
+    if (status & STATUS_DRF) == 1 {
+        return Err(BlockErr::DriveFaultError);
+    }
+
+    for i in 0..sectors {
+        ata.ata_wait_bsy();
+        ata.ata_wait_drq();
+
+        for _ in 0..256 {
+            let data = ata.read_word();
+            io_wait();
+
+            buf[i] = data as u8;
+            buf[i + 1] = (data >> 8) as u8;
+        }
+    }
+    reenable_int();
+    Ok(sectors * 512)
 }

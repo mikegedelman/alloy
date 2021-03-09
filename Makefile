@@ -1,11 +1,10 @@
 
-KERNEL_SRC := $(shell find kernel/src -type f -name "*.rs")
-KERNEL_ASM := $(shell find kernel/asm -type f -name "*.asm")
-
+KERNEL_SRC := $(shell find kernel_bin/src -type f -name "*.rs")
+KERNEL_ASM := $(shell find kernel_bin/asm -type f -name "*.asm")
 
 TARGET := target/x86-alloy/debug
 BUILD := $(TARGET)/build
-KERNEL_OBJ := $(TARGET)/libkernel.a
+KERNEL_OBJ := $(TARGET)/libkernel_bin.a
 ASM_OBJ :=$ $(BUILD)/loader.o $(BUILD)/utils.o
 KERNEL := $(TARGET)/kernel.bin
 
@@ -43,15 +42,15 @@ test_obj: $(KERNEL_SRC)
 	cargo build -p kernel --features test
 
 # Assembly files
-$(ASM_OBJ): kernel/asm/utils.asm kernel/asm/loader.asm
-	nasm -g -f elf32 kernel/asm/utils.asm -o $(BUILD)/utils.o
-	nasm -g -f elf32 kernel/asm/loader.asm -o $(BUILD)/loader.o
+$(ASM_OBJ): kernel_bin/asm/utils.asm kernel_bin/asm/loader.asm
+	nasm -g -f elf32 kernel_bin/asm/utils.asm -o $(BUILD)/utils.o
+	nasm -g -f elf32 kernel_bin/asm/loader.asm -o $(BUILD)/loader.o
 
 # Link the kernel into a multiboot format
 # Warning: Do *NOT* name this multiboot.bin. When qemu sees multiboot.bin in the current dir,
 # weird things seem to happen
-$(KERNEL): $(KERNEL_OBJ) $(ASM_OBJ) kernel/multiboot.ld # $(C_OBJ)
-	$(LD) -T kernel/multiboot.ld -o $(TARGET)/kernel.bin $(ASM_OBJ) $(KERNEL_OBJ)
+$(KERNEL): $(KERNEL_OBJ) $(ASM_OBJ) kernel_bin/multiboot.ld # $(C_OBJ)
+	$(LD) -T kernel_bin/multiboot.ld -o $(TARGET)/kernel.bin $(ASM_OBJ) $(KERNEL_OBJ)
 
 # Build the kernel with test feature, which will run tests in kernel_main instead of our
 # normal setup
@@ -59,13 +58,13 @@ $(KERNEL): $(KERNEL_OBJ) $(ASM_OBJ) kernel/multiboot.ld # $(C_OBJ)
 # Cargo test really wants to build a binary for you and run it, but we're building a staticlib
 # and linking it before we can run, so that approach doens't really work..
 $(TARGET)/kernel-test.bin: $(ASM_OBJ) test_obj
-	$(LD) -T kernel/multiboot.ld -o $(TARGET)/kernel-test.bin $(ASM_OBJ) $(KERNEL_OBJ)
+	$(LD) -T kernel_bin/multiboot.ld -o $(TARGET)/kernel-test.bin $(ASM_OBJ) $(KERNEL_OBJ)
 
 test_kernel: $(TARGET)/kernel-test.bin
 
 # Run QEMU and exec the "hello_rs" binary inside our OS
 run: $(KERNEL) kernel/resources/hello_rust.tar
-	qemu-system-i386 -kernel $(KERNEL) -hda kernel/resources/hello_rust.tar -serial stdio
+	qemu-system-i386 -kernel $(KERNEL) -hda kernel_bin/resources/hello_rust.tar -serial stdio
 
 # The above, but attach gdb for debugging, breaking at kernel_main by default
 debug: $(KERNEL) kernel/resources/hello_rust.tar
@@ -79,7 +78,7 @@ test: test_kernel
 kernel/resources/hello.tar: kernel/resources/hello.asm
 	nasm -g -f elf32 kernel/resources/hello.asm -o $(BUILD)/hello.o
 	$(LD) -o $(BUILD)/hello $(BUILD)/hello.o
-	tar -cf kernel/resources/hello.tar -C $(BUILD) hello
+	tar -cf kernel_bin/resources/hello.tar -C $(BUILD) hello
 
 # Build our hello_rs program
 $(TARGET)/hello_rs: hello_rs/src/main.rs alloy_std/src/lib.rs
@@ -87,7 +86,7 @@ $(TARGET)/hello_rs: hello_rs/src/main.rs alloy_std/src/lib.rs
 
 # Package hello_rs program into a tar so the kernel can read and exec it
 kernel/resources/hello_rust.tar: $(TARGET)/hello_rs
-	tar -cf kernel/resources/hello_rust.tar -C $(TARGET) hello_rs
+	tar -cf kernel_bin/resources/hello_rust.tar -C $(TARGET) hello_rs
 
 # To use these targets, change the first line of multiboot.ld to:
 # ENTRY(_loader)
@@ -99,6 +98,29 @@ kernel/resources/hello_rust.tar: $(TARGET)/hello_rs
 
 # run_cd: $(TARGET)/
 # 	qemu-system-i386 -cdrom $(TARGET)/alloy.iso
+
+# ======= BOOTLOADER =========
+
+BOOT_SRC := $(shell find boot/src -type f -name "*.rs")
+# KERNEL_ASM := $(shell find kernel_bin/asm -type f -name "*.asm")
+
+BOOT_OBJ := $(TARGET)/libboot.a
+ASM_OBJ :=$ $(BUILD)/loader.o $(BUILD)/utils.o
+BOOT_BIN := $(TARGET)/boot.bin
+
+$(BOOT_OBJ): $(BOOT_SRC)
+	cargo build -p boot
+
+$(BOOT_BIN): $(BOOT_OBJ)
+	i686-elf-ld -T boot/boot.ld $(BOOT_OBJ) -o $(TARGET)/boot.bin
+
+# Package hello_rs program into a tar so the kernel can read and exec it
+boot/resources/kernel.tar: $(KERNEL)
+	tar -cf boot/resources/kernel.tar -C $(TARGET) kernel.bin
+
+run_boot: $(BOOT_BIN) boot/resources/kernel.tar
+		qemu-system-i386 -kernel $(BOOT_BIN) -hda boot/resources/kernel.tar -serial stdio
+
 
 # First: brew install bochs
 # bochs can be useful for specific debugging tasks, but generally

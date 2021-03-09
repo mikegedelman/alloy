@@ -19,4 +19,5 @@ pub enum BlockErr {
 /// this should be changed to read into an array or slice.
 pub trait BlockRead {
     fn read_blocks(&self, lba: usize, num_block: usize) -> Result<Vec<u8>, BlockErr>;
+    // fn read(&self, lba: usize, num_blocks: usize, buf: &mut [u8]) -> Result<usize, BlockErr>;
 }

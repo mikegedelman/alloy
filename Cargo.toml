@@ -6,7 +6,8 @@ members = [
     "kernel",
     "alloy_std",
     "hello_rs",
-    "boot"
+    "boot",
+    "kernel_bin"
 ]
 
 [profile.dev]
