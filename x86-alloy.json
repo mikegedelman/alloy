@@ -11,6 +11,6 @@
   "disable-redzone": true,
   "features": "-mmx,-sse,+soft-float",
   "code-model": "kernel",
-  "linker": "rust-lld",
-  "linker-flavor": "ld.lld"
+  "linker": "i686-elf-ld",
+  "linker-flavor": "ld"
 }

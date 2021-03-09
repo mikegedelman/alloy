@@ -35,7 +35,7 @@ clean:
 # Build our Rust kernel: cd into kernel dir and build from there.
 # There's probably a better way to integrate cargo into this makefile.
 $(KERNEL_OBJ): $(KERNEL_SRC)
-	cargo build -p kernel --features verbose
+	cargo build -p kernel --features verbose,higher_half
 
 # There must be a better way to do this without having to mostly repeat
 # the above target

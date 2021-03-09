@@ -3,13 +3,17 @@
 //! Thanks Phil!
 
 use core::fmt;
+use cpu::disable_int;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use volatile::Volatile;
 
 use crate::cpu;
 
+#[cfg(feature="higher_half")]
 const VGA_BUFFER: u32 = 0xC00B8000; // virtual address: 0xC0000000 + 0xB8000
+#[cfg(not(feature="higher_half"))]
+const VGA_BUFFER: u32 = 0xB8000;
 
 lazy_static! {
     /// A global `Writer` instance that can be used for printing to the VGA text buffer.
@@ -183,7 +187,7 @@ macro_rules! println {
 pub fn _print(args: fmt::Arguments) {
     use core::fmt::Write;
 
-    cpu::disable_int();
-    WRITER.lock().write_fmt(args).unwrap();
-    cpu::enable_int();
+    cpu::disable_interrupts_during(|| {
+        WRITER.lock().write_fmt(args).unwrap();
+    });
 }

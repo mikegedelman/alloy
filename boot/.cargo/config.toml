@@ -1,0 +1,3 @@
+[build]
+target = "../x86-alloy.json"
+rustflags = ["-C", "relocation-model=static", "-g", "-C", "link-args=-T boot/boot.ld"]

@@ -5,7 +5,8 @@ cargo-features = ["named-profiles"]
 members = [
     "kernel",
     "alloy_std",
-    "hello_rs"
+    "hello_rs",
+    "boot"
 ]
 
 [profile.dev]

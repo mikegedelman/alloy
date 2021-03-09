@@ -6,7 +6,7 @@ use spin::Mutex;
 use alloc::vec::Vec;
 
 use crate::drivers::{BlockErr,BlockRead};
-use crate::cpu::{disable_int, enable_int, Port, io_wait};
+use crate::cpu::{disable_int, reenable_int, Port, io_wait};
 
 const COMMAND_READ: u8 = 0x20;
 const COMMAND_IDENTIFY: u8 = 0xEC;
@@ -172,7 +172,7 @@ pub unsafe fn read_sectors_direct(
             mem = mem.offset(1);
         }
     }
-    enable_int();
+    reenable_int();
     Ok(())
 }
 
@@ -214,6 +214,6 @@ pub unsafe fn read_sectors_vec(
             ret.push((data >> 8) as u8);
         }
     }
-    enable_int();
+    reenable_int();
     Ok(ret)
 }

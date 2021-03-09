@@ -4,6 +4,17 @@ pub mod interrupts;
 pub mod idt;
 pub mod gdt;
 
+use lazy_static::lazy_static;
+use spin::Mutex;
+
+lazy_static! {
+    static ref INT_STATUS: Mutex<IntStatus> = Mutex::new(IntStatus { enabled: false });
+}
+
+struct IntStatus {
+    pub enabled: bool
+}
+
 /// A port allows us to create a named variable for a 16-bit port
 /// which can make code more readable
 pub struct Port {
@@ -62,11 +73,43 @@ pub fn inw(port: u16) -> u16 {
     val
 }
 
-pub fn enable_int() {
-    unsafe {
-        asm!("sti");
+// /// Enable interrupts
+// /// Unsafe because you need to be sure that interrupts have been set up properly
+// /// before enabling.
+// /// To reenable interrupts after a temporary disable, use reenable_int()
+// pub unsafe fn enable_int() {
+//     let mut int_status = INT_STATUS.lock();
+//     asm!("sti");
+//     int_status.enabled = true;
+// }
+pub unsafe fn enable_int() {
+    let mut int_status = INT_STATUS.lock();
+    asm!("sti");
+    int_status.enabled = true;
+}
+
+pub fn reenable_int() {
+    let int_status = INT_STATUS.lock();
+    if int_status.enabled {
+        unsafe { asm!("sti"); }
     }
 }
+
+// pub fn disable_int() {
+//     unsafe {
+//         asm!("cli");
+//     }
+// }
+
+pub fn disable_interrupts_during<F>(f: F) -> () where
+    F: Fn() -> () {
+        disable_int();
+        f();
+        reenable_int();
+    }
+
+
+
 
 pub fn disable_int() {
     unsafe {

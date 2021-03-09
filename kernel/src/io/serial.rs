@@ -1,4 +1,5 @@
 //! serial.rs from: https://github.com/phil-opp/blog_os/blob/post-04/src/serial.rs
+// use cpu::disable_interrupts_during;
 use lazy_static::lazy_static;
 use spin::Mutex;
 
@@ -17,12 +18,12 @@ lazy_static! {
 pub fn _print(args: ::core::fmt::Arguments) {
     use core::fmt::Write;
 
-    cpu::disable_int();
-    SERIAL1
-        .lock()
-        .write_fmt(args)
-        .expect("Printing to serial failed");
-    cpu::enable_int();
+    cpu::disable_interrupts_during(|| {
+        SERIAL1
+            .lock()
+            .write_fmt(args)
+            .expect("Printing to serial failed");
+    });
 }
 
 /// Prints to the host through the serial interface.

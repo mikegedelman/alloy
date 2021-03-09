@@ -10,18 +10,18 @@ extern crate compiler_builtins;
 
 /// io module is first so that other modules can see the
 /// println! and serial_println! macros
-#[macro_use] mod io;
+#[macro_use] pub mod io;
 
 #[allow(dead_code)]
-#[allow(unused_unsafe)] mod drivers;
+#[allow(unused_unsafe)] pub mod drivers;
 
-mod cpu;
-mod externs;
-#[allow(dead_code)] mod mem;
-mod multiboot;
-mod fs;
-mod proc;
-mod string;
+pub mod cpu;
+pub mod externs;
+#[allow(dead_code)] pub mod mem;
+pub mod multiboot;
+pub mod fs;
+pub mod proc;
+pub mod string;
 
 /// This module will only be compiled in if we've specified
 /// --features test to cargo build.
@@ -39,6 +39,7 @@ unsafe fn init(multiboot_info_ptr: *const multiboot::MultibootInfo, magic: u32) 
     // Don't log until interrupts are created for the first time.
     // Our println! function is currently dumb and disables them and
     // re-enables no matter what. TODO: handle this case
+    cpu::disable_int();
     info!("Early init complete:\n  - loaded GDT and IDT\n  - remapped PIC interrupt vectors\n  - enabled interrupts");
     assert_eq!(
         magic,
