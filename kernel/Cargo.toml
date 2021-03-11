@@ -14,7 +14,17 @@ pc-keyboard = "0.5.0"
 seq-macro = "0.2.1"
 log = "0.4.14"
 linked_list_allocator = "0.8.0"
+hex-literal = { version = "0.3.1", optional = true }
 
+[dependencies.md-5]
+version = "0.9.1"
+default-features = false
+optional = true
+
+# [dependencies.hex]
+# version = "0.4.3"
+# default-features = false
+# optional = true
 
 [dependencies.lazy_static]
 version = "1.0"
@@ -22,4 +32,4 @@ features = ["spin_no_std"]
 
 [features]
 verbose = []
-test = []
+test = ["md-5", "hex-literal"]

@@ -3,7 +3,7 @@
 
 use lazy_static::lazy_static;
 use spin::Mutex;
-use alloc::vec::Vec;
+
 
 use crate::drivers::{BlockErr,BlockRead};
 use crate::cpu::{disable_int, enable_int, Port, io_wait};
@@ -119,73 +119,36 @@ impl AtaBlockDevice {
 }
 
 impl BlockRead for AtaBlockDevice {
-    // TODO: don't read to a vec. Due to the way vecs work, this ends up taking up ~2x
-    // as much memory as the file.
-    fn read_blocks(&self, lba: usize, num_blocks: usize) -> Result<Vec<u8>, BlockErr> {
-        let mut blocks: Vec<u8> = vec![];
-        let mut total_sectors_to_read = num_blocks;
-        while total_sectors_to_read > 0 {
-            let cur_sectors_to_read = core::cmp::min(total_sectors_to_read, 255) as u8;
-            let mut read_blocks = unsafe {  read_sectors_vec(&self.drive, lba, cur_sectors_to_read)? };
-            blocks.append(&mut read_blocks);
-            total_sectors_to_read -= cur_sectors_to_read as usize;
+    fn block_read(&self, lba: usize, bytes_to_read: usize, buf: &mut [u8]) -> Result<usize, BlockErr> {
+        let mut bytes_read = 0;
+
+        while bytes_read < bytes_to_read {
+            let bytes_left = bytes_to_read - bytes_read;
+            // Can only read 255 sectors at a time
+            let bytes_to_read_this_loop = core::cmp::min(bytes_left, 255*512);
+
+            bytes_read += read_bytes(
+                &self.drive,
+                lba + (bytes_read / 512),
+                bytes_to_read_this_loop,
+                &mut buf[bytes_read..bytes_read+bytes_to_read_this_loop]
+            )?;
         }
-        Ok(blocks)
+        Ok(bytes_read)
     }
 }
 
-/// Read sectors directly into mem_ptr
-/// This seemed like a good idea at the time, and it might be someday for mmap'ping files,
-/// but's unsafe and useless in our current iteration
-pub unsafe fn read_sectors_direct(
-    drive: DriveSelect,
-    lba: usize,
-    sectors: u8,
-    mem_ptr: *mut u8,
-) -> Result<(), BlockErr> {
-    let mut ata = ATA1.lock();
-    let mut mem = mem_ptr as *mut u16;
 
-    disable_int();
-    ata.ata_wait_bsy();
-    let status = ata.read_command(&drive, lba, sectors);
-
-    if status == 0 {
-        return Err(BlockErr::InvalidDrive);
-    }
-    if (status & 1) == 1 {
-        return Err(BlockErr::ReadError);
-    }
-    if (status & STATUS_DRF) == 1 {
-        return Err(BlockErr::DriveFaultError);
-    }
-
-    for _ in 0..sectors {
-        ata.ata_wait_bsy();
-        ata.ata_wait_drq();
-
-        for _ in 0..256 {
-            let data = ata.read_word();
-            io_wait();
-
-            *mem = data;
-            mem = mem.offset(1);
-        }
-    }
-    enable_int();
-    Ok(())
-}
-
-/// Read sectors starting at lba into a vec
-/// This turned out to be an *awful* idea. Due to how vecs work, roughly 2x the
-/// amount of data being read is actually allocated on the heap.
-/// TODO: This should read in to a buffer, not a vec.
-pub unsafe fn read_sectors_vec(
+/// Read bytes starting at lba into a slice
+fn read_bytes(
     drive: &DriveSelect,
     lba: usize,
-    sectors: u8,
-) -> Result<Vec<u8>, BlockErr> {
+    bytes_to_read: usize,
+    buf: &mut [u8],
+) -> Result<usize, BlockErr> {
     let mut ata = ATA1.lock();
+    assert!(bytes_to_read <= 512*255, "{}", bytes_to_read); // Only can read 255 sectors at a time
+    let sectors: u8  = ((bytes_to_read + 511) / 512) as u8;
 
     disable_int();
     ata.ata_wait_bsy();
@@ -201,19 +164,27 @@ pub unsafe fn read_sectors_vec(
         return Err(BlockErr::DriveFaultError);
     }
 
-    let mut ret: Vec<u8> = vec![];
-    for _ in 0..sectors {
+    let mut bytes_read = 0;
+    for sector in 0..sectors {
         ata.ata_wait_bsy();
         ata.ata_wait_drq();
 
-        for _ in 0..256 {
+        // let buf_as_u16 = unsafe { buf.as_ptr().offset(sector as isize * 512) as *mut u16 };
+        let mut tmp_buf = [0u16; 256];
+        for i in 0..256 {
             let data = ata.read_word();
             io_wait();
+            tmp_buf[i] = data;
+        }
 
-            ret.push(data as u8);
-            ret.push((data >> 8) as u8);
+        unsafe {
+            let tmp_as_u8 = unsafe { tmp_buf.as_ptr() as *const u8 };
+            let dest = buf.as_mut_ptr().offset(sector as isize * 512);
+            let bytes_to_copy = core::cmp::min(bytes_to_read - bytes_read, 512);
+            compiler_builtins::mem::memcpy(dest, tmp_as_u8, bytes_to_copy);
+            bytes_read += bytes_to_copy;
         }
     }
     enable_int();
-    Ok(ret)
+    Ok(bytes_read)
 }

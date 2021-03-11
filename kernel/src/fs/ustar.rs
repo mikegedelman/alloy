@@ -51,9 +51,10 @@ impl<R: Clone + BlockRead> UStarFs<R> {
     }
 
     fn read_header(&self, lba: usize) -> UStarHeader {
-        let header_buf = self.block_reader.read_blocks(lba, 1).unwrap().as_ptr();
+        let mut header_buf = vec![0u8; 512];
+        self.block_reader.block_read(lba, 512, &mut header_buf).unwrap();
         unsafe {
-            let header_ptr = header_buf as *const UStarHeader;
+            let header_ptr = header_buf.as_ptr() as *const UStarHeader;
             let header: UStarHeader = *header_ptr;
             header
         }

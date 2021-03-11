@@ -3,12 +3,15 @@
 // use alloc::{Vec,vec};
 use alloc::boxed::Box;
 use alloc::vec::Vec;
+use hex_literal::hex;
+use md5::{Md5, Digest};
 
 use crate::cpu::Port;
-use crate::drivers::ata;
+use crate::drivers::{ata,BlockRead};
 use crate::mem;
 use crate::fs;
 use crate::string;
+
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
@@ -47,7 +50,7 @@ fn panic(info: &::core::panic::PanicInfo) -> ! {
 
 pub fn run_tests() {
     let tests: Vec<Box<dyn Testable>> = vec![
-        // Box::new(&test_ata_read_hdd),
+        Box::new(&test_ata_read_hdd),
         Box::new(&test_read_invalid_hdd),
         Box::new(&test_bsf),
         Box::new(&test_allocate_kernel_page),
@@ -73,24 +76,17 @@ pub fn test_bsf() {
     assert_eq!(first_free_bit(0b01111111), 7);
 }
 
-/// Sectors beginning bytes:
-/// c316 fbd4 27
-/// ee63 c5b0 3a
-/// 48c8 6fa8 ed
-// fn test_ata_read_hdd() {
-//     let ata1 = ata::AtaBlockDevice::new(ata::DriveSelect::Master);
-//     let blocks: Vec<u8> = ata1.read_blocks(0, 3).unwrap();
-//     assert_eq!(blocks.len(), 512*3);
+fn test_ata_read_hdd() {
+    let ata1 = ata::AtaBlockDevice::new(ata::DriveSelect::Master);
+    let mut buf = vec![0u8; 512*4];
+    let read_size = ata1.block_read(0, 512*4, &mut buf).unwrap();
+    assert_eq!(read_size, 512*4);
 
-//     let expected = vec![0xc3, 0x16, 0xfb, 0xd4, 0x27];
-//     assert_eq!(&blocks[0..5], &expected);
-
-//     let expected_2nd_sector = vec![0xee, 0x63, 0xc5, 0xb0, 0x3a];
-//     assert_eq!(&blocks[512..512+5], &expected_2nd_sector);
-
-//     let expected_3rd_sector = vec![0x48, 0xc8, 0x6f, 0xa8, 0xed];
-//     assert_eq!(&blocks[1024..1024+5], &expected_3rd_sector);
-// }
+    // serial_println!("{:?}", &buf[0..512]);
+    assert_eq!(&buf[0..5], &hex!("68656c6c6f")); // hello
+    assert_eq!(&buf[(512*2)..(512*2)+6], &hex!("66696c653200")); // file2
+    assert_eq!(&buf[(512*3)..(512*3)+9], &hex!("6120737472696e670a")); // a string
+}
 
 /// Test our TAR-reading capabilities
 /// This is possible because the test script has:
@@ -107,8 +103,14 @@ fn test_read_ustar() {
     assert_eq!("a string\n", string::cstr_to_string(&file.read().unwrap()));
 
     // Test opening large file
-    let file = ustar.open("kernel").unwrap();
-    file.read().unwrap();
+    let kernel = ustar.open("kernel").unwrap();
+    let kernel_bytes = kernel.read().unwrap();
+
+    // The large file should match our previously calculated md5 hash
+    let mut hasher = Md5::new();
+    hasher.update(kernel_bytes);
+    let result = hasher.finalize();
+    assert_eq!(result[..], hex!("cd5b44248ecc2c62bb68f4139564b7dc"));
 
     match ustar.open("other file") {
         Ok(bad_file) => panic!("Expected no files, opened {:#?} instead", bad_file),
@@ -119,9 +121,10 @@ fn test_read_ustar() {
 
 
 fn test_read_invalid_hdd() {
-    let mut buf = [0u8; 512];
     unsafe {
-        let read_result = ata::read_sectors_direct(ata::DriveSelect::Slave, 0, 1, buf.as_mut_ptr());
+        let ata1 = ata::AtaBlockDevice::new(ata::DriveSelect::Slave);
+        let mut buf = vec![0u8; 512];
+        let read_result = ata1.block_read(0, 512, &mut buf);
         assert!(read_result.is_err());
     }
     // TODO: identify doesn't work

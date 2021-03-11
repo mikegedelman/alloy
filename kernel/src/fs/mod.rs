@@ -14,10 +14,10 @@ pub struct File<R: BlockRead> {
 
 impl<R: BlockRead> File<R> {
     pub fn read(&self) -> Result<Vec<u8>, BlockErr> {
-        let num_blocks = (self.size + 512 - 1) / 512;
-        let mut blocks = self.block_reader.read_blocks(self.lba, num_blocks).unwrap();
-        blocks.drain(self.size..);
-        Ok(blocks)
+        let mut buf = vec![0u8; self.size];
+        let read_size = self.block_reader.block_read(self.lba, self.size, &mut buf).unwrap();
+        assert_eq!(read_size, self.size);
+        Ok(buf)
     }
 }
 
