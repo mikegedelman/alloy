@@ -10,10 +10,10 @@ ASM_OBJ :=$ $(BUILD)/loader.o $(BUILD)/utils.o
 KERNEL := $(TARGET)/kernel.bin
 
 DOCKER := docker run -v $(shell pwd):/work -w /work mikegedelman/alloy:master
-# LD := $(DOCKER) i686-elf-ld
+LD := $(DOCKER) i686-elf-ld
 # If you want to build your own binutils and skip Docker, uncomment the following
 # line.
-LD := i686-elf-ld
+# LD := i686-elf-ld
 # The commented-out C stuff is laying around from previously using some C
 # files to test stuff or sketch out functionality before writing in Rust.
 # Leaving these around in case I want to do that again.

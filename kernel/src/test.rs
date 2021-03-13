@@ -7,7 +7,7 @@ use hex_literal::hex;
 use md5::{Md5, Digest};
 
 use crate::cpu::Port;
-use crate::drivers::{ata,BlockRead};
+use crate::drivers::storage::{ata,BlockRead};
 use crate::mem;
 use crate::fs;
 use crate::string;
@@ -50,11 +50,12 @@ fn panic(info: &::core::panic::PanicInfo) -> ! {
 
 pub fn run_tests() {
     let tests: Vec<Box<dyn Testable>> = vec![
-        Box::new(&test_ata_read_hdd),
+        // Box::new(&test_ata_read_hdd),
         Box::new(&test_read_invalid_hdd),
         Box::new(&test_bsf),
         Box::new(&test_allocate_kernel_page),
-        Box::new(&test_read_ustar),
+        // Box::new(&test_read_ustar),
+        Box::new(&test_read_fat),
     ];
 
     for test in &tests {
@@ -142,4 +143,11 @@ fn test_allocate_kernel_page() {
         *test2 = 0xdeadbeef;
     }
     mem::virt::free_kernel_page(addr);
+}
+
+use crate::fs::block::BlockDevice;
+fn test_read_fat() {
+    let ata1 = ata::AtaBlockDevice::new(ata::DriveSelect::Master);
+    let block = BlockDevice::new(ata1).expect("error opening block device");
+    // serial_println!("{:#x?}", block.partition_table);
 }

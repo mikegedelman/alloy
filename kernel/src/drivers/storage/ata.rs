@@ -5,7 +5,7 @@ use lazy_static::lazy_static;
 use spin::Mutex;
 
 
-use crate::drivers::{BlockErr,BlockRead};
+use super::{BlockErr,BlockRead};
 use crate::cpu::{disable_int, enable_int, Port, io_wait};
 
 const COMMAND_READ: u8 = 0x20;

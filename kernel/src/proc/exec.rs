@@ -1,6 +1,6 @@
 use crate::mem;
 use crate::mem::virt::PageDirFlags;
-use crate::drivers::ata;
+use crate::drivers::storage::ata;
 use crate::fs;
 use super::elf;
 use log::info;

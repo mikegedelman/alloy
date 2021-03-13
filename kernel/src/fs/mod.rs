@@ -1,8 +1,9 @@
 use alloc::vec::Vec;
 use alloc::string::String;
-use crate::drivers::{BlockRead, BlockErr};
+use crate::drivers::storage::{BlockRead, BlockErr};
 
 pub mod ustar;
+pub mod block;
 
 #[derive(Clone, Debug)]
 pub struct File<R: BlockRead> {
