@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <kernel/term.h>
+#include <kernel/cpu.h>
 
 #define VGA_WIDTH 80
 #define VGA_HEIGHT 25
@@ -82,4 +83,9 @@ void term_init() {
     term_column = 0;
 
     term_clear();
+}
+
+void term_disable_cursor() {
+    outb(0x3D4, 0x0A);
+    outb(0x3D5, 0x20);
 }

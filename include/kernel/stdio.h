@@ -3,8 +3,9 @@
 
 #include <stddef.h>
 
-void print_hex_byte(char);
-void print_hex_buf(const char*, size_t);
+void putchar(char);
 void puts(const char*);
+void printf(const char *, ...);
+char* convert(unsigned int, int);
 
 #endif
