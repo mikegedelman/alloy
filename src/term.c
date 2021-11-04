@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <kernel/term.h>
 #include <kernel/cpu.h>
+#include <kernel/mem/virtual.h>
 
 #define VGA_WIDTH 80
 #define VGA_HEIGHT 25
@@ -78,7 +79,7 @@ void term_puts(const char* s) {
 }
 
 void term_init() {
-    term_buffer = (uint16_t*) 0xB8000;
+    term_buffer = (uint16_t*) (0xB8000 + BASE_VIRTUAL_ADDRESS);
     term_row = 0;
     term_column = 0;
 

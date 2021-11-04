@@ -15,9 +15,10 @@ void puts(const char* s) {
     serial_write(&com1, s);
 }
 
-void printf(const char *format, ...) { 
+void printf(char *format, ...) { 
 	char *traverse; 
-	unsigned int i; 
+	uint32_t u; 
+	int32_t i;
 	char *s; 
 	
 	//Module 1: Initializing Myprintf's arguments 
@@ -36,11 +37,11 @@ void printf(const char *format, ...) {
 		//Module 2: Fetching and executing arguments
 		switch(*traverse) 
 		{ 
-			case 'c' : i = va_arg(arg,int);		//Fetch char argument
-						putchar(i);
+			case 'c' : u = va_arg(arg,int);		//Fetch char argument
+						putchar(u);
 						break; 
 						
-			case 'd' : i = va_arg(arg,int); 		//Fetch Decimal/Integer argument
+			case 'd' : i = va_arg(arg, int32_t); 		//Fetch Decimal/Integer argument
 						if(i<0) 
 						{ 
 							i = -i;
@@ -49,16 +50,16 @@ void printf(const char *format, ...) {
 						puts(convert(i,10));
 						break; 
 						
-			case 'o': i = va_arg(arg,unsigned int); //Fetch Octal representation
-						puts(convert(i,8));
+			case 'o': u = va_arg(arg, uint32_t); //Fetch Octal representation
+						puts(convert(u,8));
 						break; 
 						
 			case 's': s = va_arg(arg,char *); 		//Fetch string
 						puts(s); 
 						break; 
 						
-			case 'x': i = va_arg(arg,unsigned int); //Fetch Hexadecimal representation
-						puts(convert(i,16));
+			case 'x': u = va_arg(arg, uint32_t); //Fetch Hexadecimal representation
+						puts(convert(u,16));
 						break; 
 		}	
 	} 

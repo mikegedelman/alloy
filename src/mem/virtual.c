@@ -3,8 +3,8 @@
 #include <kernel/mem/physical.h>
 #include <kernel/mem/virtual.h>
 #include <kernel/cpu.h>
+#include <kernel/stdio.h>
 
-// #define BASE_VIRTUAL_ADDRESS: u32 = 0xC0000000;
 // #define BASE_VIRTUAL_ADDRESS 0
 #define _4MB (4 * 1024 * 1024)
 
@@ -16,7 +16,7 @@
 //         Mutex::new(KernelPageDirectory{ entries: [0u32; 1024] });
 // }
 
-static uint32_t page_directory[1024];
+static uint32_t __attribute__((aligned(4096))) page_directory[1024];
 static uint32_t end_of_kernel_virtual;
 
 // static mut KERNEL_PAGE_DIRECTORY: KernelPageDirectory = KernelPageDirectory {
@@ -127,7 +127,7 @@ void virtualmem_free(void *virtual_addr) {
 
 /// Initialize the page directory to be used for kernel code
 void virtualmem_init() {
-    end_of_kernel_virtual = (kernel_end & 0xFFC00000) + _4MB;
+    end_of_kernel_virtual = ((uint32_t)&kernel_end & 0xFFC00000) + _4MB;
 
     size_t kernel_pagedir_num = (BASE_VIRTUAL_ADDRESS >> 22);
     uint32_t flags = PAGEDIR_PRESENT | PAGEDIR_WRITE | PAGEDIR__4M_PAGE;
@@ -135,7 +135,7 @@ void virtualmem_init() {
 
     // let start = (&kernel_start as *const u32) as u32;
     // let end = (&kernel_end as *const u32) as u32;
-    uint32_t kernel_size = kernel_end - kernel_start;
+    uint32_t kernel_size = &kernel_end - &kernel_start;
 
     if (kernel_size > _4MB) {
         uint32_t addtl_pages = (kernel_size + _4MB - 1) / _4MB;
@@ -146,5 +146,7 @@ void virtualmem_init() {
     }
 
     // Reserve the physical frames containing the page directory
-    set_cr3(page_directory);
+    // This must be a *PHYSICAL* address, so we have translate it from virtual.
+    // printf("setting cr3 to %x", (void*) page_directory - BASE_VIRTUAL_ADDRESS);
+    set_cr3((void*) page_directory - BASE_VIRTUAL_ADDRESS);
 }

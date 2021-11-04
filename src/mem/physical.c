@@ -90,8 +90,10 @@ void load_multiboot_mmap(MultibootInfo *mb_info) {
         if (cur_entry->type != 1) {
             continue;
         }
-        printf("%x - %x\n", cur_entry->addr, cur_entry->addr + cur_entry->len);
-        free_range(cur_entry->addr, cur_entry->addr + cur_entry->len);
+        uint32_t start_addr = cur_entry->addr;
+        uint32_t end_addr = cur_entry->addr + cur_entry->len;
+        printf("Found free range: %x - %x\n", start_addr, end_addr);
+        free_range(start_addr, end_addr);
     }
 }
 

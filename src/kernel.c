@@ -53,7 +53,7 @@ void kernel_tasks() {
     printf("Got a pointer to heap memory at 0x%x\n", some_mem);
     some_mem[0] = 0x1;
 
-   int *some_mem2 = heap_alloc(1024);
+    int *some_mem2 = heap_alloc(1024);
     printf("Got a pointer to heap memory at 0x%x\n", some_mem2);
     some_mem2[0] = 0x2;
 }

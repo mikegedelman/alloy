@@ -5,7 +5,7 @@
 
 void putchar(char);
 void puts(const char*);
-void printf(const char *, ...);
+void printf(char *, ...);
 char* convert(unsigned int, int);
 
 #endif

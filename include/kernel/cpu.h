@@ -36,8 +36,8 @@ static inline void io_wait() {
 
 static inline void set_cr3(void *m) {
     asm volatile(
-        "mov %0, %%cr3"
-        :: "b" (m) : "memory"
+        "movl %0, %%cr3"
+        :: "r" (m) : "memory"
     );
 }
 
