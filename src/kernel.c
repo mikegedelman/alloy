@@ -3,6 +3,7 @@
 #include <kernel/arch/x86.h>
 #include <kernel/term.h>
 #include <kernel/stdio.h>
+#include <kernel/string.h>
 #include <kernel/fs.h>
 #include <kernel/drivers/uart16550.h>
 #include <kernel/drivers/pic8259.h>
@@ -12,6 +13,11 @@
 #include <kernel/mem/physical.h>
 #include <kernel/mem/virtual.h>
 #include <kernel/mem/heap.h>
+#include <kernel/drivers/ata.h>
+#include <kernel/fs/volume.h>
+#include <kernel/fs/fat.h>
+
+extern int test();
 
 void panic(const char *msg) {
     serial_write(&com1, "PANIC: ");
@@ -30,6 +36,7 @@ void early_init() {
     term_disable_cursor();
     serial_init();
     term_init();
+    ata_init();
 }
 
 void setup_memory(MultibootInfo *multiboot_info, uint32_t magic) {
@@ -44,6 +51,12 @@ void setup_memory(MultibootInfo *multiboot_info, uint32_t magic) {
     heap_init();
 }
 
+void print_dir_entry(FatDirectoryEntry *entry) {
+    char filename[12];
+    fat_render_filename(entry, filename);
+    printf("%s\n", filename);
+}
+
 /** Stuff to do after init. */
 void kernel_tasks() {
     serial_write(&com1, "Welcome to os.\n");
@@ -56,6 +69,33 @@ void kernel_tasks() {
     int *some_mem2 = heap_alloc(1024);
     printf("Got a pointer to heap memory at 0x%x\n", some_mem2);
     some_mem2[0] = 0x2;
+
+    uint8_t buf[512];
+    int bytes_read = ata_read(&ata1, ATA_MASTER, 0, 512, buf);
+    printf("%d bytes read from ata1.\n", bytes_read);
+
+    MasterBootRecord *mbr = (MasterBootRecord*) buf;
+    printf("partition type %x\n", mbr->partition_table[0].partition_type);
+    printf("partition lba start %x\n", mbr->partition_table[0].lba_partition_start);
+
+    Fat16Fs fat16fs = fat16_init(mbr->partition_table[0].lba_partition_start);
+    printf("root dir lba %x\n", fat16fs.root_dir_offset);
+    FatDirectoryEntry *entries_buf = heap_alloc(sizeof(FatDirectoryEntry) * 256);
+    size_t num_entries = fat16_read_dir(&fat16fs, entries_buf);
+    for (size_t i = 0; i < num_entries; i++) {
+        print_dir_entry(&entries_buf[i]);
+    }
+
+    FatFile *f = fat_open(&fat16fs, "RANDOM.BIN");
+    if (f == NULL) {
+        printf("Couldn't open RANDOM.BIN.\n");
+        return;
+    }
+
+    uint8_t *file_buf = heap_alloc(f->size);
+    fat_read(f, file_buf);
+
+    
 }
 
 void kernel_main(MultibootInfo *multiboot_info, uint32_t magic) {
