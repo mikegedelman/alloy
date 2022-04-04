@@ -1,14 +1,12 @@
 VPATH := $(shell find src -type d)
 C_OBJ := $(shell find src -type f -name "*.c" | xargs basename -s .c | xargs -I '{}' echo '{}.o')
 ASM_OBJ := $(shell find src -type f -name "*.asm" | xargs basename -s .asm | xargs -I '{}' echo '{}.o')
-# GO_OBJ := $(shell find src -type f -name "*.go" | xargs basename -s .go | xargs -I '{}' echo '{}.o')
 OBJECTS := $(C_OBJ) $(ASM_OBJ) # $(GO_OBJ)
 
-DOCKER := docker run -v $(shell pwd):/work -w /work alloy-go
+DOCKER := docker run -v $(shell pwd):/work -w /work mikegedelman/alloy:master
 
-CC := $(DOCKER) i686-elf-gcc -g
+CC := i686-elf-gcc -g
 CFLAGS := -I./include -std=gnu11 -ffreestanding -O -Wall -Wextra
-GC := $(DOCKER) i686-elf-gccgo -g
 
 all: os-multiboot.bin
 

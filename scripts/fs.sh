@@ -17,5 +17,5 @@ hdiutil attach -imagekey diskimage-class=CRawDiskImage -nomount hdd.img
 
 dd if=/dev/urandom of=resources/random.bin bs=512 count=8
 cp resources/random.bin /Volumes/VOLUME/random.bin
-md5sum resources/random.bin # e997c62c439538a8757a562db1b41a19
+md5 resources/random.bin # 0e2e3d535387642e97880622628d763a
 # update md5sum in test.rs if you have to regenerate this
