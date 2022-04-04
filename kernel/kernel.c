@@ -86,14 +86,18 @@ void kernel_tasks() {
         print_dir_entry(&entries_buf[i]);
     }
 
-    FatFile *f = fat_open(&fat16fs, "RANDOM.BIN");
+    FatFile *f = fat_open(&fat16fs, "USER.BIN");
     if (f == NULL) {
-        printf("Couldn't open RANDOM.BIN.\n");
+        printf("Couldn't open USER.BIN.\n");
         return;
     }
 
     uint8_t *file_buf = heap_alloc(f->size);
     fat_read(f, file_buf);
+
+    asm volatile(
+        "jmp *(%0)" :: "r" (&file_buf)
+    );
 
     
 }

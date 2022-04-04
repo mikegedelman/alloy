@@ -32,4 +32,10 @@ void isr_handler(uint32_t x, uint32_t info) {
     send_eoi(x);
 }
 
-void _syscall(uint32_t x, void *data) {}
+void _syscall(uint32_t x, void *data) {
+    switch(x) {
+        case 1:
+            printf("%s", data);
+            break;
+    }
+}
