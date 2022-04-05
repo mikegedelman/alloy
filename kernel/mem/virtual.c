@@ -28,28 +28,28 @@ static uint32_t end_of_kernel_virtual;
 //     pub entries: [u32; 1024],
 // }
 
-enum PageDirFlags {
-        PAGEDIR_PRESENT = 1,
-        PAGEDIR_WRITE = 1 << 1,
-        PAGEDIR_USER = 1 << 2,
-        PAGEDIR_WRITE_THROUGH = 1 << 3,
-        PAGEDIR_DISABLE_CACHE = 1 << 4,
-        PAGEDIR_ACCESSED = 1 << 5,
-        // 6: always 0
-        PAGEDIR__4M_PAGE = 1 << 7,
-};
+// enum PageDirFlags {
+//         PAGEDIR_PRESENT = 1,
+//         PAGEDIR_WRITE = 1 << 1,
+//         PAGEDIR_USER = 1 << 2,
+//         PAGEDIR_WRITE_THROUGH = 1 << 3,
+//         PAGEDIR_DISABLE_CACHE = 1 << 4,
+//         PAGEDIR_ACCESSED = 1 << 5,
+//         // 6: always 0
+//         PAGEDIR__4M_PAGE = 1 << 7,
+// };
 
-enum PageFlags {
-        PAGE_PRESENT = 1,
-        PAGE_WRITE = 1 << 1,
-        PAGE_USER = 1 << 2,
-        PAGE_WRITE_THROUGH = 1 << 3,
-        PAGE_DISABLE_CACHE = 1 << 4,
-        PAGE_ACCESSED = 1 << 5,
-        PAGE_DIRTY = 1 << 6,
-        // 7: always 0
-        PAGE_GLOBAL = 1 << 8,
-};
+// enum PageFlags {
+//         PAGE_PRESENT = 1,
+//         PAGE_WRITE = 1 << 1,
+//         PAGE_USER = 1 << 2,
+//         PAGE_WRITE_THROUGH = 1 << 3,
+//         PAGE_DISABLE_CACHE = 1 << 4,
+//         PAGE_ACCESSED = 1 << 5,
+//         PAGE_DIRTY = 1 << 6,
+//         // 7: always 0
+//         PAGE_GLOBAL = 1 << 8,
+// };
 
 // pub struct VirtualManager {
 //     pub end_of_kernel_virtual: u32,

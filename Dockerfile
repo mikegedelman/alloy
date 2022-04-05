@@ -11,12 +11,10 @@ ENV PATH="$PREFIX/bin:$PATH"
 RUN curl https://ftp.gnu.org/gnu/binutils/binutils-2.38.tar.xz -o binutils-2.38.tar.xz
 RUN curl http://gnu.mirrors.hoobly.com/gcc/gcc-11.2.0/gcc-11.2.0.tar.xz -o gcc-11.2.0.tar.xz
 
-RUN apt-get install -y xz-utils build-essential libgmp3-dev libmpc-dev libmpfr-dev grub2-common grub-pc-bin xorriso
-
 # Build binutils
 RUN mkdir $HOME/src
 RUN cd $HOME/src
-RUN tar xvf binutils-2.38.tar.xz
+RUN tar xf binutils-2.38.tar.xz
 RUN mkdir build-binutils
 RUN cd build-binutils
 RUN ../binutils-2.38/configure --target=$TARGET --prefix="$PREFIX" --with-sysroot --disable-nls --disable-werror
@@ -26,7 +24,7 @@ RUN make install
 # Build GCC
 RUN cd $HOME/src
 RUN which -- $TARGET-as || echo $TARGET-as is not in the PATH
-RUN tar xvf gcc-11.2.0.tar.xz
+RUN tar xf gcc-11.2.0.tar.xz
 RUN mkdir build-gcc
 RUN cd build-gcc
 RUN make distclean
@@ -35,3 +33,5 @@ RUN make -j4 all-gcc
 RUN make all-target-libgcc
 RUN make install-gcc
 RUN make install-target-libgcc
+
+RUN apk --no-cache add coreutils

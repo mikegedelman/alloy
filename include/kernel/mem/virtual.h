@@ -1,4 +1,5 @@
-#pragma once
+#ifndef _KERNEL_VIRTUAL_MEM_H
+#define _KERNEL_VIRTUAL_MEM_H
 
 #define BASE_VIRTUAL_ADDRESS 0xC0000000
 
@@ -32,3 +33,5 @@ void alloc_4mb(uint32_t virtual_addr, uint32_t physical_addr, uint32_t flags);
 
 extern void *kernel_start;
 extern void *kernel_end;
+
+#endif

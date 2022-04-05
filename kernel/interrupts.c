@@ -17,6 +17,7 @@ void isr_handler(uint32_t x, uint32_t info) {
     // char scancode;
     if (x < 32) {
         printf("exception %x", x);
+        while(1) { asm("hlt"); }
     }
     switch (x) {
         case 32:

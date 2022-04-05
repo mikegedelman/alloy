@@ -16,6 +16,7 @@
 #include <kernel/drivers/ata.h>
 #include <kernel/fs/volume.h>
 #include <kernel/fs/fat.h>
+#include <kernel/proc/elf.h>
 
 extern int test();
 
@@ -95,11 +96,7 @@ void kernel_tasks() {
     uint8_t *file_buf = heap_alloc(f->size);
     fat_read(f, file_buf);
 
-    asm volatile(
-        "jmp *(%0)" :: "r" (&file_buf)
-    );
-
-    
+    exec((void*) file_buf);
 }
 
 void kernel_main(MultibootInfo *multiboot_info, uint32_t magic) {

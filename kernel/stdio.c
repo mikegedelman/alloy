@@ -41,6 +41,7 @@ void printf(char *format, ...) {
 						putchar(u);
 						break; 
 						
+			case 'i':
 			case 'd' : i = va_arg(arg, int32_t); 		//Fetch Decimal/Integer argument
 						if(i<0) 
 						{ 

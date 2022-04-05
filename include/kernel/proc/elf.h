@@ -1,4 +1,5 @@
-#pragma once
+#ifndef _KERNEL_ELF_H
+#define _KERNEL_ELF_H
 
 #include <stdint.h>
 
@@ -35,3 +36,7 @@ typedef struct __attribute__((__packed__)) {
     uint32_t p_flags;
     uint32_t p_align;
 } Elf32ProgramHeader;
+
+void exec (void *program);
+
+#endif

@@ -25,9 +25,9 @@ os-multiboot.bin: $(OBJECTS)
 # user.elf: userspace/main.c userspace/crt0.S
 # 	i686-elf-gcc -I./include -std=gnu11 -ffreestanding -O -Wall -Wextra userspace/main.c userspace/crt0.S -nostdlib -o user.elf
 
-user.bin: userspace/main.c userspace/crt0.S
-	i686-elf-gcc -I./include -std=gnu11 -ffreestanding -O -Wall -Wextra userspace/main.c userspace/crt0.S -nostdlib -o user.elf
-	i686-elf-objcopy user.elf -O binary user.bin
+user.bin:  userspace/crt0.S userspace/main.c
+	i686-elf-gcc -I./include -std=gnu11 -ffreestanding -O -Wall -Wextra $^ -nostdlib -o user.bin
+# 	i686-elf-objcopy user.elf -O binary user.bin
 
 
 .PHONY: clean run

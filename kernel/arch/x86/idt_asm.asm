@@ -5,6 +5,7 @@ section .text
 extern _syscall
 global int128
 int128:
+    push ebp
     mov ebp, esp
     push ebx
     push eax
