@@ -6,14 +6,14 @@
 #define EXIT_SYSCALL 2
 
 
-void _exit() {
-    asm volatile (
-        "mov %0, %%eax\n\t"
-        "int %1\n\t"
-        :: "i" (EXIT_SYSCALL),
-           "i" (SYSCALL_INT)
-    );
-}
+// void _exit() {
+//     asm volatile (
+//         "mov %0, %%eax\n\t"
+//         "int %1\n\t"
+//         :: "i" (EXIT_SYSCALL),
+//            "i" (SYSCALL)
+//     );
+// }
 
 /// Put the address of s in ebx and then syscall #1 "print"
 /// TOOD: A macro for syscalls would be nice
@@ -31,7 +31,7 @@ void print(const char *s) {
                    "int %2"
                    :: "r" (s),
                       "i" (PRINT_SYSCALL),
-                      "i" (SYSCALL_INT)
+                      "i" (SYSCALL)
                    : "eax", "ebx" );
 }
 

@@ -15,6 +15,7 @@ hdiutil attach -imagekey diskimage-class=CRawDiskImage -nomount hdd.img
 # echo "hello" > /media/fat/hi.txt
 # sudo xxd -a $DEV # check again
 
+mkdir resources
 dd if=/dev/urandom of=resources/random.bin bs=512 count=8
 cp resources/random.bin /Volumes/VOLUME/random.bin
 md5 resources/random.bin # 0e2e3d535387642e97880622628d763a

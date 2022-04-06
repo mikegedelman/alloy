@@ -38,5 +38,9 @@ void _syscall(uint32_t x, void *data) {
         case 1:
             printf("%s", data);
             break;
+        case 2:
+            printf("exit\n");
+            while(1) { asm("hlt"); }
+            break;
     }
 }

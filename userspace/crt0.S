@@ -3,9 +3,8 @@
 .globl _exit
 .type _exit, @function
 _exit:
-    mov %eax, 0x2
-    int 0x80
-    ; unreachable
+    mov $2, %eax
+    int $128
 
 .globl _start
 .type _start, @function

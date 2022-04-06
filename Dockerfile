@@ -12,8 +12,6 @@ RUN curl https://ftp.gnu.org/gnu/binutils/binutils-2.38.tar.xz -o binutils-2.38.
 RUN curl http://gnu.mirrors.hoobly.com/gcc/gcc-11.2.0/gcc-11.2.0.tar.xz -o gcc-11.2.0.tar.xz
 
 # Build binutils
-RUN mkdir $HOME/src
-RUN cd $HOME/src
 RUN tar xf binutils-2.38.tar.xz
 RUN mkdir build-binutils
 RUN cd build-binutils
@@ -22,7 +20,6 @@ RUN make -j4
 RUN make install
 
 # Build GCC
-RUN cd $HOME/src
 RUN which -- $TARGET-as || echo $TARGET-as is not in the PATH
 RUN tar xf gcc-11.2.0.tar.xz
 RUN mkdir build-gcc
@@ -35,3 +32,35 @@ RUN make install-gcc
 RUN make install-target-libgcc
 
 RUN apk --no-cache add coreutils
+
+# RUN curl https://ftp.gnu.org/gnu/automake/automake-1.11.tar.gz -o automake-1.11.tar.gz
+# RUN tar xf automake-1.11.tar.gz
+# RUN curl https://ftp.gnu.org/gnu/autoconf/autoconf-2.65.tar.gz -o autoconf-2.65.tar.gz
+# RUN tar xf autoconf-2.65.tar.gz
+# 
+# RUN apk --no-cache add m4
+# RUN ls -l
+# 
+# # RUN mkdir build-autoconf
+# # RUN cd build-autoconf
+# WORKDIR /build-autoconf
+# RUN ../autoconf-2.65/configure --prefix="$PREFIX"
+# RUN make -j4
+# RUN make install
+# 
+# WORKDIR /build-automake
+# RUN ../automake-1.11/configure --prefix="$PREFIX"
+# # RUN make
+# # RUN make install
+# # RUN cd ..
+# 
+# WORKDIR /
+# RUN curl https://ftp.gnu.org/gnu/autoconf/autoconf-2.64.tar.xz -o autoconf-2.64.tar.xz
+# RUN tar xf autoconf-2.64.tar.xz
+# 
+# WORKDIR /build-autoconf-264
+# RUN mkdir /autoconf264
+# RUN ../autoconf-2.64/configure --prefix="/autoconf264"
+# RUN make
+# RUN make install
+
