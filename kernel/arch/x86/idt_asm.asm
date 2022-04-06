@@ -10,8 +10,7 @@ int128:
     push ebx
     push eax
     call _syscall
-    pop eax
-    pop ebx
+    leave
     iret
 
 ; This macro creates a routine that will call our isr_handler function
