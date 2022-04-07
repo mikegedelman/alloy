@@ -8,7 +8,7 @@ static void *heap_cur;
 
 void heap_init() {
     heap_begin = virtualmem_alloc_page();
-    heap_end = heap_begin + (4 * 1024 * 1024);
+    heap_end = heap_begin + ((4 * 1024 * 1024) * 4);
     heap_cur = heap_begin;
 }
 

@@ -17,6 +17,8 @@
 #include <kernel/fs/volume.h>
 #include <kernel/fs/fat.h>
 #include <kernel/proc/elf.h>
+#include <kernel/drivers/pci.h>
+#include <kernel/drivers/net/rtl8139.h>
 
 extern int test();
 
@@ -38,6 +40,7 @@ void early_init() {
     serial_init();
     term_init();
     ata_init();
+    init_interrupts();
 }
 
 void setup_memory(MultibootInfo *multiboot_info, uint32_t magic) {
@@ -63,40 +66,45 @@ void kernel_tasks() {
     serial_write(&com1, "Welcome to os.\n");
     term_puts("Welcome to os.\n");
 
-    int *some_mem = heap_alloc(1024);
-    printf("Got a pointer to heap memory at 0x%x\n", some_mem);
-    some_mem[0] = 0x1;
+    // int *some_mem = heap_alloc(1024);
+    // printf("Got a pointer to heap memory at 0x%x\n", some_mem);
+    // some_mem[0] = 0x1;
 
-    int *some_mem2 = heap_alloc(1024);
-    printf("Got a pointer to heap memory at 0x%x\n", some_mem2);
-    some_mem2[0] = 0x2;
+    // int *some_mem2 = heap_alloc(1024);
+    // printf("Got a pointer to heap memory at 0x%x\n", some_mem2);
+    // some_mem2[0] = 0x2;
 
-    uint8_t buf[512];
-    int bytes_read = ata_read(&ata1, ATA_MASTER, 0, 512, buf);
-    printf("%d bytes read from ata1.\n", bytes_read);
+    // uint8_t buf[512];
+    // int bytes_read = ata_read(&ata1, ATA_MASTER, 0, 512, buf);
+    // printf("%d bytes read from ata1.\n", bytes_read);
 
-    MasterBootRecord *mbr = (MasterBootRecord*) buf;
-    printf("partition type %x\n", mbr->partition_table[0].partition_type);
-    printf("partition lba start %x\n", mbr->partition_table[0].lba_partition_start);
+    // MasterBootRecord *mbr = (MasterBootRecord*) buf;
+    // printf("partition type %x\n", mbr->partition_table[0].partition_type);
+    // printf("partition lba start %x\n", mbr->partition_table[0].lba_partition_start);
 
-    Fat16Fs fat16fs = fat16_init(mbr->partition_table[0].lba_partition_start);
-    printf("root dir lba %x\n", fat16fs.root_dir_offset);
-    FatDirectoryEntry *entries_buf = heap_alloc(sizeof(FatDirectoryEntry) * 256);
-    size_t num_entries = fat16_read_dir(&fat16fs, entries_buf);
-    for (size_t i = 0; i < num_entries; i++) {
-        print_dir_entry(&entries_buf[i]);
-    }
+    // Fat16Fs fat16fs = fat16_init(mbr->partition_table[0].lba_partition_start);
+    // printf("root dir lba %x\n", fat16fs.root_dir_offset);
+    // FatDirectoryEntry *entries_buf = heap_alloc(sizeof(FatDirectoryEntry) * 256);
+    // size_t num_entries = fat16_read_dir(&fat16fs, entries_buf);
+    // for (size_t i = 0; i < num_entries; i++) {
+    //     print_dir_entry(&entries_buf[i]);
+    // }
 
-    FatFile *f = fat_open(&fat16fs, "USER.BIN");
-    if (f == NULL) {
-        printf("Couldn't open USER.BIN.\n");
-        return;
-    }
+    check_all_buses();
+    // printf("Done scanning PCI.\n");
 
-    uint8_t *file_buf = heap_alloc(f->size);
-    fat_read(f, file_buf);
+    rtl_8139_init();
 
-    exec((void*) file_buf);
+    // FatFile *f = fat_open(&fat16fs, "USER.BIN");
+    // if (f == NULL) {
+    //     printf("Couldn't open USER.BIN.\n");
+    //     return;
+    // }
+
+    // uint8_t *file_buf = heap_alloc(f->size);
+    // fat_read(f, file_buf);
+
+    // exec((void*) file_buf);
 }
 
 void kernel_main(MultibootInfo *multiboot_info, uint32_t magic) {
