@@ -1,0 +1,10 @@
+*.o
+*.bin
+*.iso
+*.img
+isodir/
+bochsout.txt
+.vscode/
+target/
+kernel/resources/*.tar
+.idea/

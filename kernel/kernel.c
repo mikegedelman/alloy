@@ -5,6 +5,7 @@
 #include <kernel/stdio.h>
 #include <kernel/string.h>
 #include <kernel/fs.h>
+#include <kernel/interrupts.h>
 #include <kernel/drivers/uart16550.h>
 #include <kernel/drivers/pic8259.h>
 #include <kernel/cpu.h>
@@ -21,6 +22,7 @@
 #include <kernel/drivers/net/rtl8139.h>
 
 extern int test();
+extern void rust_main();
 
 void panic(const char *msg) {
     serial_write(&com1, "PANIC: ");
@@ -105,6 +107,8 @@ void kernel_tasks() {
     // fat_read(f, file_buf);
 
     // exec((void*) file_buf);
+    
+    rust_main();
 }
 
 void kernel_main(MultibootInfo *multiboot_info, uint32_t magic) {

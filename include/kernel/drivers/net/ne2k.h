@@ -1,0 +1,1 @@
+void ne2k_init();

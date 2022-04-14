@@ -5,6 +5,7 @@
 #include <kernel/stdio.h>
 
 PCIDevice pci_devices[256];
+static size_t pci_device_num = 0; // for writing to pci_devices
 
 uint32_t pci_config_read(uint8_t bus, uint8_t slot, uint8_t fn, uint8_t offset) {
     uint32_t address;
@@ -111,7 +112,6 @@ void print_type(uint8_t bus, uint8_t device, uint8_t fn) {
 
 void check_device(uint8_t bus, uint8_t device) {
     uint8_t fn = 0;
-    size_t pci_device_num = 0; // for writing to pci_devices
 
     uint32_t header_0 = pci_config_read(bus, device, fn, 0);
     // uint16_t device_id = pci_config_read_word(bus, device, fn, 2);
@@ -119,7 +119,7 @@ void check_device(uint8_t bus, uint8_t device) {
     uint32_t vendor_id = header_0 & 0xFFFF;
     uint32_t device_id = header_0 >> 16;
     if (vendor_id == 0xFFFF) return; // Device doesn't exist
-    // printf("device_id: %x, vendor_id: %x\n\t", device_id, vendor_id);
+    printf("device_id: %x, vendor_id: %x\n\t", device_id, vendor_id);
 
     uint32_t header_0xc = pci_config_read(bus, device, fn, 0xC);
     uint32_t header_type = (header_0xc >> 16) & 0xFF;
@@ -135,37 +135,28 @@ void check_device(uint8_t bus, uint8_t device) {
     // }
 
     if ((header_type & 0x80) != 0) {
-        // printf("Multi-function device\n\t");
+        printf("Multi-function device\n\t");
         for (int i = 0; i < 32; i++) {
-            // print_type(bus, device, i);
-            // printf("\t");
+            print_type(bus, device, i);
+            printf("\t");
 
             pci_devices[pci_device_num].vendor_id = vendor_id;
             pci_devices[pci_device_num].device_id = device_id;
             pci_devices[pci_device_num].bus = bus;
             pci_devices[pci_device_num].device = device;
             pci_devices[pci_device_num].fn = i;
+            pci_device_num++;
         }
     } else {
-        // print_type(bus, device, 0);
+        print_type(bus, device, 0);
         pci_devices[pci_device_num].vendor_id = vendor_id;
         pci_devices[pci_device_num].device_id = device_id;
         pci_devices[pci_device_num].bus = bus;
         pci_devices[pci_device_num].device = device;
         pci_devices[pci_device_num].fn = 0;
+        pci_device_num++;
     }
-    // printf("\n");
-
-    // check_fn(bus, device, fn);
-    // headerType = getHeaderType(bus, device, fn);
-    // if( (headerType & 0x80) != 0) {
-    //     // It's a multi-fn device, so check remaining fns
-    //     for (fn = 1; fn < 8; fn++) {
-    //         if (get_vendor_id(bus, device, fn) != 0xFFFF) {
-    //             check_fn(bus, device, fn);
-    //         }
-    //     }
-    // }
+    printf("\n");
 }
 
 void check_all_buses() {
