@@ -15,17 +15,23 @@ extern "C" {
 }
 
 
-
 #[no_mangle]
 pub extern "C" fn rust_main() {
-    // let mut buf: [u8; 60] = [0u8; 60];
-    // for i in 0..6 {
-
-    // }
+    
     let info = unsafe { get_mac_address() };
     for i in 0..6 {
         print!("{:x} ", info.mac_address[i]);
     }
+
+    let mut buf: [u8; 60] = [0u8; 60];
+    for i in 0..6 {
+        buf[i] = info.mac_address[i];    
+    }
+
+    unsafe {
+        send_packet(buf.as_ptr() as *const u8, 60);
+    }
+
 }
 
 

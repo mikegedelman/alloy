@@ -145,43 +145,43 @@ void rtl_8139_init() {
 
     read_mac_addr();
 
-    ARPPacket arp_request;
-    arp_request.hardware_type = htons(0x1);
-    arp_request.protocol_type = htons(0x0800);
-    arp_request.hw_addr_len = 6;
-    arp_request.proto_addr_len = 4;
-    arp_request.opcode = htons(0x0001);
-    for (int i = 0; i < 6; i++) {
-    	arp_request.src_hw_addr[i] = rtl_info.mac_addr[i];
-    }
-    for (int i = 0; i < 4; i++) {
-    	arp_request.src_proto_addr[i] = 0;
-    }
-    arp_request.dest_proto_addr[0] = 192;
-    arp_request.dest_proto_addr[1] = 168;
-    arp_request.dest_proto_addr[2] = 0;
-    arp_request.dest_proto_addr[3] = 1;
-    for (int i = 0; i < 6; i++) {
-    	arp_request.dest_hw_addr[i] = 0xFF;
-    }
-    printf("hw address len: %x\n", arp_request.hw_addr_len);
+    // ARPPacket arp_request;
+    // arp_request.hardware_type = htons(0x1);
+    // arp_request.protocol_type = htons(0x0800);
+    // arp_request.hw_addr_len = 6;
+    // arp_request.proto_addr_len = 4;
+    // arp_request.opcode = htons(0x0001);
+    // for (int i = 0; i < 6; i++) {
+    // 	arp_request.src_hw_addr[i] = rtl_info.mac_addr[i];
+    // }
+    // for (int i = 0; i < 4; i++) {
+    // 	arp_request.src_proto_addr[i] = 0;
+    // }
+    // arp_request.dest_proto_addr[0] = 192;
+    // arp_request.dest_proto_addr[1] = 168;
+    // arp_request.dest_proto_addr[2] = 0;
+    // arp_request.dest_proto_addr[3] = 1;
+    // for (int i = 0; i < 6; i++) {
+    // 	arp_request.dest_hw_addr[i] = 0xFF;
+    // }
+    // printf("hw address len: %x\n", arp_request.hw_addr_len);
 
-    Etherheader header;
+    // Etherheader header;
 
-    for (int i = 0; i < 6; i++) {
-    	header.src_mac[i] = rtl_info.mac_addr[i];
-    }
-    for (int i = 0; i < 6; i++) {
-    	header.dest_mac[i] = 0xFF;
-    }
-    header.ethertype = htons(0x0806);
+    // for (int i = 0; i < 6; i++) {
+    // 	header.src_mac[i] = rtl_info.mac_addr[i];
+    // }
+    // for (int i = 0; i < 6; i++) {
+    // 	header.dest_mac[i] = 0xFF;
+    // }
+    // header.ethertype = htons(0x0806);
 
-    uint8_t arp_buf[60];
-    for (int i = 0; i < 60; i++) {
-    	arp_buf[i] = 0;
-    }
-    memcpy(arp_buf, &header, sizeof(Etherheader));
-    memcpy(arp_buf + sizeof(Etherheader), &arp_request, sizeof(arp_request));
+    // uint8_t arp_buf[60];
+    // for (int i = 0; i < 60; i++) {
+    // 	arp_buf[i] = 0;
+    // }
+    // memcpy(arp_buf, &header, sizeof(Etherheader));
+    // memcpy(arp_buf + sizeof(Etherheader), &arp_request, sizeof(arp_request));
 
-    rtl_8139_tx(arp_buf, 60);
+    // rtl_8139_tx(arp_buf, 60);
 }
