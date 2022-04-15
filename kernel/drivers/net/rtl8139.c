@@ -7,6 +7,8 @@
 #include <kernel/string.h>
 #include <kernel/inet.h>
 
+#include <kernel/net/link.h>
+
 #include <stdint.h>
 
 enum rtl_8139_registers {
@@ -67,10 +69,8 @@ void read_mac_addr() {
     printf("MAC Address: %x:%x:%x:%x:%x:%x\n", rtl_info.mac_addr[0], rtl_info.mac_addr[1], rtl_info.mac_addr[2], rtl_info.mac_addr[3], rtl_info.mac_addr[4], rtl_info.mac_addr[5]);
 }
 
-void rtl_8139_get_mac_addr(uint8_t *mac_addr) {
-	for (int i = 0; i < 6; i++) {
-		mac_addr[i] = rtl_info.mac_addr[i];
-	}
+MacAddress rtl_8139_get_mac_addr() {
+	return new_mac_from_array(rtl_info.mac_addr);
 }
 
 void rtl_8139_init() {

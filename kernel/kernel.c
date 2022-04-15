@@ -20,6 +20,10 @@
 #include <kernel/proc/elf.h>
 #include <kernel/drivers/pci.h>
 #include <kernel/drivers/net/rtl8139.h>
+#include <kernel/net/ip.h>
+#include <kernel/net/arp.h>
+#include <kernel/net/udp.h>
+#include <kernel/net/dhcp.h>
 
 extern int test();
 extern void rust_main();
@@ -108,7 +112,20 @@ void kernel_tasks() {
 
     // exec((void*) file_buf);
     
-    rust_main();
+    // rust_main();
+    // IPAddress my_ip = new_ip(0, 0, 0, 0);
+    // IPAddress discover_ip = new_ip(192, 168, 0, 1);
+    // IPAddress broadcast_ip = new_ip(255, 255, 255, 255);
+
+    // uint8_t buf[4];
+    // buf[0] = 0xFF;
+    // buf[1] = 0xFF;
+    // buf[2] = 0xFF;
+    // buf[3] = 0xFF;
+
+    // arp_request(discover_ip, my_ip);
+    // send_ip(my_ip, broadcast_ip, 0x11, buf, 4);
+    dhcp_discover();
 }
 
 void kernel_main(MultibootInfo *multiboot_info, uint32_t magic) {

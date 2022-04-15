@@ -1,9 +1,0 @@
-
-[unstable]
-build-std = ["core", "compiler_builtins", "alloc"]
-build-std-features = ["compiler-builtins-mem"]
-
-
-[build]
-target = "x86-alloy.json"
-rustflags = ["-C", "relocation-model=static", "-g"]
