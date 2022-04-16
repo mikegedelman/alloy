@@ -3,7 +3,6 @@
 #include <stdint.h>
 #include <kernel/multiboot.h>
 #include <kernel/mem/physical.h>
-#include <kernel/log.h>
 #include <kernel/stdio.h>
 
 #define _4MB 4*1024*1024

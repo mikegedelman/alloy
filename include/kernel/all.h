@@ -35,6 +35,7 @@
 #include <kernel/fs/fat.h>
 
 // Network
+#include <kernel/inet.h>
 #include <kernel/net/link.h>
 #include <kernel/net/ip.h>
 #include <kernel/net/arp.h>

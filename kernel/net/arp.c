@@ -1,9 +1,5 @@
 // https://wiki.osdev.org/Address_Resolution_Protocol
-#include <kernel/string.h>
-#include <kernel/net/link.h>
-#include <kernel/net/ip.h>
-#include <kernel/net/arp.h>
-#include <kernel/inet.h>
+#include <kernel/all.h>
 
 #define ARP_ETHERTYPE 0x0806
 

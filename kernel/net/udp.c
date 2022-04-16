@@ -1,8 +1,4 @@
-#include <kernel/string.h>
-#include <kernel/inet.h>
-#include <kernel/net/ip.h>
-#include <kernel/net/udp.h>
-#include <kernel/net/dhcp.h>
+#include <kernel/all.h>
 
 #define UDP_IP_PROTOCOL 0x11
 

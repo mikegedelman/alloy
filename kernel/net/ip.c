@@ -1,8 +1,4 @@
-#include <kernel/net/link.h>
-#include <kernel/net/ip.h>
-#include <kernel/inet.h>
-#include <kernel/stdio.h>
-#include <kernel/string.h>
+#include <kernel/all.h>
 
 #define IPV4_ETHERTYPE 0x0800
 
@@ -120,10 +116,10 @@ void receive_ip(uint8_t *data, size_t data_len) {
 	IPAddress *dest = (IPAddress*)(data + 16);
 
 	printf("source IP: ");
-	print_ip(source);
+	print_ip((uint8_t*) source);
 	printf("\n");
 	printf("dest IP: ");
-	print_ip(dest);
+	print_ip((uint8_t*) dest);
 	printf("\n");
 
 	uint8_t protocol = data[9];

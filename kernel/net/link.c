@@ -1,13 +1,6 @@
-#include <stdbool.h>
+#include <kernel/all.h>
 
-#include <kernel/stdio.h>
-#include <kernel/string.h>
-#include <kernel/net/link.h>
-#include <kernel/net/ip.h>
-#include <kernel/inet.h>
-
-// For now, tightly coupled to the rtl_8139 driver.
-#include <kernel/drivers/net/rtl8139.h>
+// TODO: this is extremely tightly coupled to the rtl8139 driver.
 
 static MacAddress _rtl_mac;
 static bool _did_init_mac = false;
@@ -15,13 +8,6 @@ static bool _did_init_mac = false;
 static uint8_t packet_buf[1518];
 
 void print_mac(uint8_t *mac) {
-	// for (int i = 0; i < 6; i++) {
-	// 	printf("%x", mac[i]);
-	// 	if (i != 5) {
-	// 		printf(":");
-	// 	}
-	// }
-	// printf("\n");
 	printf("%x:%x:%x:%x:%x:%x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 }
 
@@ -55,8 +41,6 @@ MacAddress current_mac() {
 
 	return _rtl_mac;
 }
-
-// static uint8_t packet_buf[1614]; // todo proper length
 
 void send_packet(MacAddress dest, uint16_t frame_type, uint8_t *data_buf, size_t data_len) {
 	size_t buf_pos = 0;
@@ -93,11 +77,11 @@ typedef struct __attribute__((__packed__)) {
 void ethernet_receive_packet(uint8_t *data, size_t data_len) {
 	EthernetHeader *header = (EthernetHeader*) data;
 	printf("dest mac: ");
-	print_mac(&header->dest);
+	print_mac((uint8_t*) &header->dest);
 	printf("\n");
 
 	printf("source mac: ");
-	print_mac(&header->src);
+	print_mac((uint8_t*) &header->src);
 	printf("\n");
 
 	printf("frame type: %x", ntohs(header->frame_type_be));

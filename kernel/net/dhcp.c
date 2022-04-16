@@ -1,9 +1,4 @@
-#include <kernel/inet.h>
-#include <kernel/string.h>
-#include <kernel/net/link.h>
-#include <kernel/net/ip.h>
-#include <kernel/net/udp.h>
-#include <kernel/net/dhcp.h>
+#include <kernel/all.h>
 
 static uint8_t dhcp_buf[1500];
 
@@ -96,6 +91,6 @@ void receive_dhcp(uint8_t *data, size_t data_len) {
 	DHCPMessage *msg = (DHCPMessage*) data;
 
 	printf("Offered IP ");
-	print_ip(&msg->yiaddr);
+	print_ip((uint8_t*) &msg->yiaddr);
 	printf("\n");
 }
