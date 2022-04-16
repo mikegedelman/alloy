@@ -1,4 +1,5 @@
-#pragma once
+#ifndef _KERNEL_CPU_H
+#define _KERNEL_CPU_H
 
 #include <stdint.h>
 
@@ -77,3 +78,5 @@ static inline void invlpg(void *m) {
         "invlpg (%0)" :: "b"(m) : "memory"
     );
 }
+
+#endif

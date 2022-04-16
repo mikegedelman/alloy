@@ -27,13 +27,14 @@ void send_eoi(uint32_t irq) {
 void isr_handler(uint32_t x, uint32_t info) {
     // term_putchar('?');)
     // char scancode;
+
+    // if (x != 0x20) {
+    //     printf("**INTERRUPT %x \n", x);
+    // }
+
     if (x < 32) {
         printf("exception %x", x);
         while(1) { asm("hlt"); }
-    }
-
-    if (x != 0x20) {
-        printf("%x ", x);
     }
 
     if (registered_interrupts[x] != NULL) {

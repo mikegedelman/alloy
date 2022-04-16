@@ -8,6 +8,24 @@
 
 static uint8_t ip_buf[1500];
 
+typedef struct {
+	IPAddress my_ip;
+} IPState;
+
+static IPState ip_state;
+
+void set_my_ip(IPAddress addr) {
+	ip_state.my_ip = addr;
+}	
+
+IPAddress get_my_ip() {
+	return ip_state.my_ip;
+}
+
+void print_ip(uint8_t *ip) {
+		printf("%x.%x.%x.%x", ip[0], ip[1], ip[2], ip[3]);
+}
+
 IPAddress new_ip(uint8_t a, uint8_t b, uint8_t c, uint8_t d) {
 	IPAddress ip;
 	ip.parts[0] = a;
@@ -95,4 +113,27 @@ void send_ip(IPAddress source, IPAddress dest, uint8_t protocol, void *data, siz
 
 	MacAddress broadcast_mac = new_mac(0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF);
 	send_packet(broadcast_mac, IPV4_ETHERTYPE, ip_buf, data_len + 20);
+}
+
+void receive_ip(uint8_t *data, size_t data_len) {
+	IPAddress *source = (IPAddress*)(data + 12);
+	IPAddress *dest = (IPAddress*)(data + 16);
+
+	printf("source IP: ");
+	print_ip(source);
+	printf("\n");
+	printf("dest IP: ");
+	print_ip(dest);
+	printf("\n");
+
+	uint8_t protocol = data[9];
+	printf("protocol: %x\n", protocol);
+
+	switch (protocol) {
+		case 0x11:
+			receive_udp(data + 20, data_len - 20);
+			break;
+		default:
+			printf("Unsupported protocol %x. Dropping packet.\n", protocol);
+	}
 }

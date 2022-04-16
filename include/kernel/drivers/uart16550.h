@@ -1,4 +1,5 @@
-#pragma once
+#ifndef _KERNEL_UART16550_H
+#define _KERNEL_UART16550_H
 
 #define SERIAL_COM1 0x3F8
 
@@ -19,3 +20,5 @@ void serial_write(SerialPort*, const char*);
 void serial_writeb(SerialPort*, char a);
 char serial_read(SerialPort*);
 void serial_init();
+
+#endif

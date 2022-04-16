@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <kernel/stdio.h>
 #include <kernel/mem/heap.h>
 #include <kernel/mem/virtual.h>
 
@@ -14,12 +15,13 @@ void heap_init() {
 
 void *heap_alloc(size_t alloc_sz) {
     if ((heap_begin + alloc_sz) > heap_end) {
+        printf("ERROR: uanble to heap alloc\n");
         return NULL;
     }
 
-    size_t rounded_alloc_sz = (alloc_sz & 0x1000) + 0x1000;
+    // size_t rounded_alloc_sz = (alloc_sz & 0x1000) + 0x1000;
     void *ret = heap_cur;
-    heap_cur += rounded_alloc_sz;
+    heap_cur += alloc_sz;
 
     return ret;
 }

@@ -92,7 +92,7 @@ void load_multiboot_mmap(MultibootInfo *mb_info) {
         }
         uint32_t start_addr = cur_entry->addr;
         uint32_t end_addr = cur_entry->addr + cur_entry->len;
-        printf("Found free range: %x - %x\n", start_addr, end_addr);
+        // printf("Found free range: %x - %x\n", start_addr, end_addr);
         free_range(start_addr, end_addr);
     }
 }
@@ -167,7 +167,7 @@ AllocResult alloc_contiguous_4mb() {
             //     addr,
             //     addr + _4MB
             // );
-            printf("Reserving a phsyical memory range %x - %x\n", addr, addr + _4MB);
+            // printf("Reserving a phsyical memory range %x - %x\n", addr, addr + _4MB);
             reserve_range(addr, addr + _4MB);
             return (AllocResult) {
                 .addr = addr,

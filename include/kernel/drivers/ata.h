@@ -1,4 +1,5 @@
-#pragma once
+#ifndef _KERNEL_DRIVERS_ATA_H
+#define _KERNEL_DRIVERS_ATA_H
 
 typedef enum {
     ATA_MASTER = 0xE0,
@@ -25,3 +26,5 @@ extern AtaPio ata2;
 
 void ata_init();
 int ata_read(AtaPio *ata, DriveSelect drive, size_t lba, int bytes_to_read, uint8_t *dest);
+
+#endif

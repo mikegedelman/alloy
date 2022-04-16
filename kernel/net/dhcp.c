@@ -91,3 +91,11 @@ void dhcp_discover() {
 	IPAddress broad = new_ip(255, 255, 255, 255);
 	send_udp(zero, 68, broad, 67, dhcp_buf, buf_pos);
 }
+
+void receive_dhcp(uint8_t *data, size_t data_len) {
+	DHCPMessage *msg = (DHCPMessage*) data;
+
+	printf("Offered IP ");
+	print_ip(&msg->yiaddr);
+	printf("\n");
+}

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef _KERNEL_MEM_PHYSICAL_H
+#define _KERNEL_MEM_PHYSICAL_H
 
 #include <kernel/multiboot.h>
 
@@ -16,3 +17,5 @@ size_t first_free_bit(uint8_t);
 AllocResult alloc_contiguous_4mb();
 void load_multiboot_mmap(MultibootInfo*);
 int get_num_free();
+
+#endif

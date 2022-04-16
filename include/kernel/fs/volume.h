@@ -1,4 +1,5 @@
-#pragma once
+#ifndef _KERNEL_FS_VOLUME_H
+#define _KERNEL_FS_VOLUME_H
 
 #include <stdint.h>
 
@@ -18,3 +19,5 @@ typedef struct __attribute__((__packed__)) {
     PartitionTableEntry partition_table[4];
     uint16_t valid_bootsect_signature;
 } MasterBootRecord;
+
+#endif

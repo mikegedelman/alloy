@@ -2,6 +2,7 @@
 #include <kernel/inet.h>
 #include <kernel/net/ip.h>
 #include <kernel/net/udp.h>
+#include <kernel/net/dhcp.h>
 
 #define UDP_IP_PROTOCOL 0x11
 
@@ -25,4 +26,13 @@ void send_udp(IPAddress source_ip, uint16_t source_port, IPAddress dest_ip, uint
 	memcpy(udp_buf + 8, data, data_len);
 
 	send_ip(source_ip, dest_ip, UDP_IP_PROTOCOL, udp_buf, data_len + 8);
+}
+
+void receive_udp(uint8_t *data, size_t data_len) {
+	UDPHeader *header = (UDPHeader*)data;
+
+	printf("Received %x bytes on UDP port %x\n", ntohs(header->message_length), ntohs(header->destination_port));
+	// just assuming it's DHCP for now lol
+
+	receive_dhcp(data + sizeof(UDPHeader), data_len - sizeof(UDPHeader));
 }

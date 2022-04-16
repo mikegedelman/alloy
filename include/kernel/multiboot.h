@@ -1,4 +1,5 @@
-#pragma once
+#ifndef _KERNEL_MULTIBOOT_H
+#define _KERNEL_MULTIBOOT_H
 
 #include <stdint.h>
 
@@ -99,4 +100,6 @@ typedef struct __attribute__((__packed__)) {
     //     },
     //   },
 } MultibootInfo;
+
+#endif
 

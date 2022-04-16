@@ -114,12 +114,10 @@ void check_device(uint8_t bus, uint8_t device) {
     uint8_t fn = 0;
 
     uint32_t header_0 = pci_config_read(bus, device, fn, 0);
-    // uint16_t device_id = pci_config_read_word(bus, device, fn, 2);
-    // uint16_t vendor_id = get_vendor_id(bus, device, fn);
     uint32_t vendor_id = header_0 & 0xFFFF;
     uint32_t device_id = header_0 >> 16;
     if (vendor_id == 0xFFFF) return; // Device doesn't exist
-    printf("device_id: %x, vendor_id: %x\n\t", device_id, vendor_id);
+    // printf("device_id: %x, vendor_id: %x\n\t", device_id, vendor_id);
 
     uint32_t header_0xc = pci_config_read(bus, device, fn, 0xC);
     uint32_t header_type = (header_0xc >> 16) & 0xFF;
@@ -135,10 +133,10 @@ void check_device(uint8_t bus, uint8_t device) {
     // }
 
     if ((header_type & 0x80) != 0) {
-        printf("Multi-function device\n\t");
+        // printf("Multi-function device\n\t");
         for (int i = 0; i < 32; i++) {
-            print_type(bus, device, i);
-            printf("\t");
+            // print_type(bus, device, i);
+            // printf("\t");
 
             pci_devices[pci_device_num].vendor_id = vendor_id;
             pci_devices[pci_device_num].device_id = device_id;
@@ -148,7 +146,7 @@ void check_device(uint8_t bus, uint8_t device) {
             pci_device_num++;
         }
     } else {
-        print_type(bus, device, 0);
+        // print_type(bus, device, 0);
         pci_devices[pci_device_num].vendor_id = vendor_id;
         pci_devices[pci_device_num].device_id = device_id;
         pci_devices[pci_device_num].bus = bus;
@@ -156,17 +154,13 @@ void check_device(uint8_t bus, uint8_t device) {
         pci_devices[pci_device_num].fn = 0;
         pci_device_num++;
     }
-    printf("\n");
+    // printf("\n");
 }
 
-void check_all_buses() {
+void pci_scan() {
 	for (uint16_t bus = 0; bus < 256; bus++) {
 		for (uint8_t device = 0; device < 32; device++) {
 			check_device(bus, device);
 		}
 	}
 }
-
-// void check_fn(uint8_t bus, uint8_t device, uint8_t function) {
-
-// }

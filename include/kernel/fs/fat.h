@@ -1,4 +1,5 @@
-#pragma once
+#ifndef _KERNEL_FS_FAT_H
+#define _KERNEL_FS_FAT_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -64,3 +65,5 @@ size_t fat16_read_dir(Fat16Fs *fs, FatDirectoryEntry *entries_buf);
 FatFile *fat_open(Fat16Fs *fs, char *target_filename);
 void fat_render_filename(FatDirectoryEntry *entry, char *buf);
 size_t fat_read(FatFile *f, uint8_t *buf);
+
+#endif

@@ -1,4 +1,7 @@
+// https://wiki.osdev.org/RTL8139
+// https://github.com/szhou42/osdev/blob/master/src/kernel/drivers/rtl8139.c
 #include <kernel/drivers/pci.h>
+#include <kernel/drivers/pic8259.h>
 #include <kernel/mem/heap.h>
 #include <kernel/mem/virtual.h>
 #include <kernel/cpu.h>
@@ -10,6 +13,12 @@
 #include <kernel/net/link.h>
 
 #include <stdint.h>
+
+#define ROK     (1<<0)
+#define RER     (1<<1)
+#define TOK     (1<<2)
+#define TER     (1<<3)
+#define TX_TOK  (1<<15)
 
 enum rtl_8139_registers {
 	tx_addr0 = 0x20,
@@ -23,31 +32,37 @@ typedef struct {
 	uint8_t mac_addr[6];
 } Rtl8319Info;
 
-typedef struct __attribute__((__packed__)) {
-	uint16_t hardware_type; // Ethernet: 0x1
-	uint16_t protocol_type; // 
-	uint8_t hw_addr_len; // MAC: 6
-	uint8_t proto_addr_len; // IPv4 = 4
-	uint16_t opcode;
-	uint8_t src_hw_addr[6];
-	uint8_t src_proto_addr[4];
-	uint8_t dest_hw_addr[6];
-	uint8_t dest_proto_addr[4];
-} ARPPacket;
-
-
-typedef struct __attribute__((__packed__)) {
-	uint8_t dest_mac[6];
-	uint8_t src_mac[6];
-	uint16_t ethertype;
-	// void *data;
-} Etherheader;
-
 static Rtl8319Info rtl_info;
-static void* rtl_buf = NULL;
+static uint8_t* rtl_buf = NULL;
+
+
+void rtl_8139_receive_packet() {
+	uint16_t *buf_as_u16 = (uint16_t*)rtl_buf;
+	// printf("header: %x\n", buf_as_u16[0]);
+	size_t packet_len = buf_as_u16[1];
+	printf("packet length: %x\n", packet_len);
+
+	uint8_t *packet = (uint8_t*)heap_alloc(packet_len);
+	memcpy(packet, rtl_buf + 4, packet_len);
+	ethernet_receive_packet(packet, packet_len);
+}
 
 void rtl_8139_handler(void *data) {
-	printf("8139 handler - data: %x\n", (uintptr_t) data);
+	cli();
+	// printf("8139 handler - data: %x\n", (uintptr_t) data);
+	    //qemu_printf("RTL8139 interript was fired !!!! \n");
+    uint16_t status = inw(rtl_info.base_io + 0x3E);
+
+    if(status & TOK) {
+        printf("(rtl8139) Packet sent\n");
+    }
+    if (status & ROK) {
+        printf("(rtl8139) Received packet\n");
+        rtl_8139_receive_packet();
+    }
+
+    outw(rtl_info.base_io + 0x3E, 0x5);
+    sti();
 }
 
 
@@ -142,46 +157,7 @@ void rtl_8139_init() {
     uint32_t int_line = pci_config_read(rtl_info.pci_bus, rtl_info.pci_device, rtl_info.pci_fn, 0x3C) & 0xFF;
     printf("8139 interrupt line: %x\n", int_line);
     register_interrupt_handler(32 + int_line, rtl_8139_handler);
+    pic_irq_clear_mask(32 + int_line);
 
     read_mac_addr();
-
-    // ARPPacket arp_request;
-    // arp_request.hardware_type = htons(0x1);
-    // arp_request.protocol_type = htons(0x0800);
-    // arp_request.hw_addr_len = 6;
-    // arp_request.proto_addr_len = 4;
-    // arp_request.opcode = htons(0x0001);
-    // for (int i = 0; i < 6; i++) {
-    // 	arp_request.src_hw_addr[i] = rtl_info.mac_addr[i];
-    // }
-    // for (int i = 0; i < 4; i++) {
-    // 	arp_request.src_proto_addr[i] = 0;
-    // }
-    // arp_request.dest_proto_addr[0] = 192;
-    // arp_request.dest_proto_addr[1] = 168;
-    // arp_request.dest_proto_addr[2] = 0;
-    // arp_request.dest_proto_addr[3] = 1;
-    // for (int i = 0; i < 6; i++) {
-    // 	arp_request.dest_hw_addr[i] = 0xFF;
-    // }
-    // printf("hw address len: %x\n", arp_request.hw_addr_len);
-
-    // Etherheader header;
-
-    // for (int i = 0; i < 6; i++) {
-    // 	header.src_mac[i] = rtl_info.mac_addr[i];
-    // }
-    // for (int i = 0; i < 6; i++) {
-    // 	header.dest_mac[i] = 0xFF;
-    // }
-    // header.ethertype = htons(0x0806);
-
-    // uint8_t arp_buf[60];
-    // for (int i = 0; i < 60; i++) {
-    // 	arp_buf[i] = 0;
-    // }
-    // memcpy(arp_buf, &header, sizeof(Etherheader));
-    // memcpy(arp_buf + sizeof(Etherheader), &arp_request, sizeof(arp_request));
-
-    // rtl_8139_tx(arp_buf, 60);
 }
