@@ -1,5 +1,6 @@
 // https://wiki.osdev.org/RTL8139
 // https://github.com/szhou42/osdev/blob/master/src/kernel/drivers/rtl8139.c
+// https://www.cs.usfca.edu/~cruse/cs326f04/RTL8139_ProgrammersGuide.pdf
 #include <kernel/drivers/pci.h>
 #include <kernel/drivers/pic8259.h>
 #include <kernel/mem/heap.h>
@@ -19,10 +20,75 @@
 #define TOK     (1<<2)
 #define TER     (1<<3)
 #define TX_TOK  (1<<15)
+#define CAPR 	0x38
 
-enum rtl_8139_registers {
-	tx_addr0 = 0x20,
+enum RTL8139_registers {
+  MAC0             = 0x00,       // Ethernet hardware address
+  MAR0             = 0x08,       // Multicast filter
+  TxStatus0        = 0x10,       // Transmit status (Four 32bit registers)
+  TxAddr0          = 0x20,       // Tx descriptors (also four 32bit)
+  RxBuf            = 0x30, 
+  RxEarlyCnt       = 0x34, 
+  RxEarlyStatus    = 0x36,
+  ChipCmd          = 0x37,
+  RxBufPtr         = 0x38,
+  RxBufAddr        = 0x3A,
+  IntrMask         = 0x3C,
+  IntrStatus       = 0x3E,
+  TxConfig         = 0x40,
+  RxConfig         = 0x44,
+  Timer            = 0x48,        // A general-purpose counter
+  RxMissed         = 0x4C,        // 24 bits valid, write clears
+  Cfg9346          = 0x50, 
+  Config0          = 0x51, 
+  Config1          = 0x52,
+  FlashReg         = 0x54, 
+  GPPinData        = 0x58, 
+  GPPinDir         = 0x59, 
+  MII_SMI          = 0x5A, 
+  HltClk           = 0x5B,
+  MultiIntr        = 0x5C, 
+  TxSummary        = 0x60,
+  MII_BMCR         = 0x62, 
+  MII_BMSR         = 0x64, 
+  NWayAdvert       = 0x66, 
+  NWayLPAR         = 0x68,
+  NWayExpansion    = 0x6A,
+  
+  // Undocumented registers, but required for proper operation
+  FIFOTMS          = 0x70,        // FIFO Control and test
+  CSCR             = 0x74,        // Chip Status and Configuration Register
+  PARA78           = 0x78, 
+  PARA7c           = 0x7c,        // Magic transceiver parameter register
 };
+
+
+enum ChipCmdBits {
+  RxBufEmpty = 0x01,
+  CmdTxEnb   = 0x04,
+  CmdRxEnb   = 0x08,
+  CmdReset   = 0x10,
+};
+
+enum RxStatusBits {
+  RxStatusOK  = 0x0001,
+  RxBadAlign  = 0x0002, 
+  RxCRCErr    = 0x0004,
+  RxTooLong   = 0x0008, 
+  RxRunt      = 0x0010, 
+  RxBadSymbol = 0x0020, 
+  RxBroadcast = 0x2000,
+  RxPhysical  = 0x4000, 
+  RxMulticast = 0x8000, 
+};
+
+// enum rtl_8139_registers {
+// 	tx_addr0 = 0x20,
+// };
+
+// Four TXAD register, you must use a different one to send packet each time(for example, use the first one, second... fourth and back to the first)
+uint8_t TSAD_array[4] = {0x20, 0x24, 0x28, 0x2C};
+uint8_t TSD_array[4] = {0x10, 0x14, 0x18, 0x1C};
 
 typedef struct {
 	uint16_t base_io;
@@ -30,45 +96,96 @@ typedef struct {
 	uint8_t pci_device;
 	uint8_t pci_fn;
 	uint8_t mac_addr[6];
+	uint8_t cur_tx;
 } Rtl8319Info;
 
 static Rtl8319Info rtl_info;
 static uint8_t* rtl_buf = NULL;
+static uint16_t current_packet_offset;
 
+#define RX_BUF_SIZE (8192+16+1500)
+#define RX_READ_POINTER_MASK (~3)
 
 void rtl_8139_receive_packet() {
-	uint16_t *buf_as_u16 = (uint16_t*)rtl_buf;
-	// printf("header: %x\n", buf_as_u16[0]);
-	size_t packet_len = buf_as_u16[1];
-	printf("packet length: %x\n", packet_len);
+	uint8_t cmd_in = inb(rtl_info.base_io + ChipCmd);
+	while((cmd_in & RxBufEmpty) == 0) {
+		printf("ChipCmd reg: %x\n", cmd_in);
+		uint8_t *rtl_buf_cur = rtl_buf + current_packet_offset;
+		// uint16_t *buf_as_u16 = (uint16_t*)(rtl_buf_cur);
+		// printf("header: %x\n", buf_as_u16[0]);
+		// size_t packet_len = buf_as_u16[1];
+		// printf("packet length: %x\n", packet_len);
+		uint32_t rx_status = *(uint32_t*) rtl_buf_cur;
+		printf("rx status: %x\n", rx_status);
+		uint16_t rx_size = rx_status >> 16;
+		uint16_t packet_len = rx_size - 4;
+		printf("packet length: %x\n", packet_len);
 
-	uint8_t *packet = (uint8_t*)heap_alloc(packet_len);
-	memcpy(packet, rtl_buf + 4, packet_len);
-	ethernet_receive_packet(packet, packet_len);
+		if (rx_status & (RxBadSymbol | RxRunt | RxTooLong | RxCRCErr | RxBadAlign)) {
+			printf("8139: rx error: %x\n", rx_status);
+			// TODO: reset the chip
+			return;
+		}
+		if ((rx_status & (RxStatusOK)) == 0) {
+			printf("8139: RxStatusOK == 0. Aborting.\n");
+			return;
+		}
+
+
+		uint8_t *packet = (uint8_t*)heap_alloc(packet_len);
+		memcpy(packet, rtl_buf_cur + 4, packet_len);
+		ethernet_receive_packet(packet, packet_len);
+
+
+		current_packet_offset = (current_packet_offset + rx_size + 4 + 3) & RX_READ_POINTER_MASK;
+
+	    if (current_packet_offset > RX_BUF_SIZE) {
+	        current_packet_offset -= RX_BUF_SIZE;
+	    }
+
+	    printf("writing current packet ptr: %x\n", current_packet_offset - 0x10);
+	    outw(rtl_info.base_io + CAPR, current_packet_offset - 0x10);
+	    cmd_in = inb(rtl_info.base_io + ChipCmd);
+	}
 }
 
 void rtl_8139_handler(void *data) {
-	cli();
+	// cli();
 	// printf("8139 handler - data: %x\n", (uintptr_t) data);
 	    //qemu_printf("RTL8139 interript was fired !!!! \n");
-    uint16_t status = inw(rtl_info.base_io + 0x3E);
+	printf("8139 handler\n");
+
+    uint16_t status = inw(rtl_info.base_io + IntrStatus);
+	outw(rtl_info.base_io + IntrStatus, status);
 
     if(status & TOK) {
         printf("(rtl8139) Packet sent\n");
+        outw(rtl_info.base_io + 0x3E, 0x5);
     }
     if (status & ROK) {
         printf("(rtl8139) Received packet\n");
         rtl_8139_receive_packet();
+        outw(rtl_info.base_io + 0x3E, 0x5);
     }
 
-    outw(rtl_info.base_io + 0x3E, 0x5);
-    sti();
+    // outw(rtl_info.base_io + 0x3C, 0xFFFF);
+    // io_wait();
+    // io_wait();
+    // io_wait();
+    // io_wait();
+    // uint16_t mask = inw(rtl_info.base_io + 0x3C);
+    // printf("mask: %x\n", mask);
+    
+    // outw(rtl_info.base_io + 0x3E, 0xFFFF);
+    // pic_irq_clear_mask(32 + 0xB);
+    // sti();
 }
 
 
 void rtl_8139_tx(void *data, uint32_t len) {
-	outl(rtl_info.base_io + 0x20, (uintptr_t)(data - BASE_VIRTUAL_ADDRESS));
-	outl(rtl_info.base_io + 0x10, len);
+	outl(rtl_info.base_io + TSAD_array[rtl_info.cur_tx], (uintptr_t)(data - BASE_VIRTUAL_ADDRESS));
+	outl(rtl_info.base_io + TSD_array[rtl_info.cur_tx], len);
+	rtl_info.cur_tx = (rtl_info.cur_tx + 1) % 4;
 }
 
 void read_mac_addr() {
@@ -139,7 +256,7 @@ void rtl_8139_init() {
  	while( (inb(rtl_info.base_io + 0x37) & 0x10) != 0) { }
 
  	// Send a *physical* memory pointer to a buffer that can be used for 
- 	rtl_buf = heap_alloc(8192+16+1500);
+ 	rtl_buf = heap_alloc(RX_BUF_SIZE);
 
 	// TODO - this is a pretty sloppy way to convert the address to physical..
  	outl(rtl_info.base_io + 0x30, (uintptr_t)(rtl_buf - BASE_VIRTUAL_ADDRESS));

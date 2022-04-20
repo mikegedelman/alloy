@@ -2,6 +2,28 @@
 
 static uint8_t dhcp_buf[1500];
 
+enum DHCPOption {
+	DHCP_MESSAGE_TYPE = 0x35,
+	DHCP_REQUESTED_IP = 0x32,
+	DHCP_SERVER_IP = 0x36,
+	DHCP_END_OPTIONS = 0xFF
+};
+
+enum DHCPMessageType {
+	DHCP_DISCOVER = 1,
+	DHCP_OFFER = 2,
+	DHCP_REQUEST = 3,
+	DHCP_ACK = 5
+};
+
+typedef struct {
+	bool waiting_for_lease;
+	IPAddress offered_ip;
+	IPAddress dhcp_server_ip;
+} DHCPState;
+
+static DHCPState dhcp_state;
+
 typedef struct __attribute__((__packed__)) {
 	uint8_t operation; // 1 = request; 2 = reply
 	uint8_t hw_type; // 1: ethernet
@@ -20,6 +42,11 @@ typedef struct __attribute__((__packed__)) {
 	char file[128];
 	// options
 } DHCPMessage;
+
+typedef struct __attribute__((__packed__)) {
+	uint8_t option_type;
+	uint8_t length;
+} DHCPOptionHeader;
 
 void dhcp_message_type(uint8_t typ, uint8_t *buf) {
 	buf[0] = 0x35;
@@ -85,12 +112,125 @@ void dhcp_discover() {
 
 	IPAddress broad = new_ip(255, 255, 255, 255);
 	send_udp(zero, 68, broad, 67, dhcp_buf, buf_pos);
+
+	dhcp_state.waiting_for_lease = true;
+}
+
+void dhcp_request() {
+	DHCPMessage msg;
+	msg.operation = 1;
+	msg.hw_type = 1;
+	msg.hw_address_len = 6;
+	msg.hops = 0;
+	msg.xid = 1;
+	msg.seconds = 0;
+	msg.flags = 0;
+
+	IPAddress zero = new_ip(0, 0, 0, 0);
+	msg.ciaddr = zero;
+	msg.yiaddr = zero;
+	msg.siaddr = zero;
+	msg.giaddr = zero;
+	msg.client_mac = current_mac();
+	for (int i = 0; i < 10; i++) {
+		msg.hw_addr_padding[i] = 0;
+	}
+	for (int i = 0; i < 64; i++) {
+		msg.sname[i] = 0;
+	}
+	for (int i = 0; i < 128; i++) {
+		msg.file[i] = 0;
+	}
+
+	memcpy(dhcp_buf, (void*)&msg, sizeof(msg));
+
+	size_t buf_pos = sizeof(msg);
+	dhcp_buf[buf_pos++] = 99; // magic cookie follows
+	dhcp_buf[buf_pos++] = 130;
+	dhcp_buf[buf_pos++] = 83;
+	dhcp_buf[buf_pos++] = 99;
+	dhcp_buf[buf_pos++] = DHCP_MESSAGE_TYPE; // type 35 -> discover
+	dhcp_buf[buf_pos++] = 1;
+	dhcp_buf[buf_pos++] = DHCP_REQUEST;
+
+	dhcp_buf[buf_pos++] = DHCP_REQUESTED_IP;
+	dhcp_buf[buf_pos++] = 4;
+	memcpy(dhcp_buf + buf_pos, (void*)&dhcp_state.offered_ip, 4);
+	buf_pos += 4;
+
+	dhcp_buf[buf_pos++] = DHCP_SERVER_IP;
+	dhcp_buf[buf_pos++] = 4;
+	memcpy(dhcp_buf + buf_pos, (void*)&dhcp_state.dhcp_server_ip, 4);
+	buf_pos += 4;
+
+	dhcp_buf[buf_pos++] = 0x39; // maximum message size
+	dhcp_buf[buf_pos++] = 2;
+	dhcp_buf[buf_pos++] = 0x2;
+	dhcp_buf[buf_pos++] = 0x40;
+	dhcp_buf[buf_pos++] = 0x37; // parameter request list
+	dhcp_buf[buf_pos++] = 7;
+	dhcp_buf[buf_pos++] = 0x1; // subnet mask
+	dhcp_buf[buf_pos++] = 0x3; // router
+	dhcp_buf[buf_pos++] = 0x6; // dns
+	dhcp_buf[buf_pos++] = 0xc; // hostname
+	dhcp_buf[buf_pos++] = 0xf; // domain name
+	dhcp_buf[buf_pos++] = 0x1c; // broadcast address
+	dhcp_buf[buf_pos++] = 0x2a; // ntp servers
+	dhcp_buf[buf_pos++] = 0x3d; // client identifier
+	dhcp_buf[buf_pos++] = 7;
+	dhcp_buf[buf_pos++] = 1;
+	memcpy(dhcp_buf + buf_pos, (void*)&msg.client_mac, 6);
+	buf_pos += 6;
+	dhcp_buf[buf_pos++] = 0xFF; // end
+
+	IPAddress broad = new_ip(255, 255, 255, 255);
+	send_udp(zero, 68, broad, 67, dhcp_buf, buf_pos);
 }
 
 void receive_dhcp(uint8_t *data, size_t data_len) {
 	DHCPMessage *msg = (DHCPMessage*) data;
 
-	printf("Offered IP ");
-	print_ip((uint8_t*) &msg->yiaddr);
-	printf("\n");
+	uint8_t msg_type = 0;
+	DHCPOptionHeader *option_header = (DHCPOptionHeader*) (data + sizeof(DHCPMessage) + 4);
+	while (option_header->option_type != DHCP_END_OPTIONS) {
+		if (option_header->option_type == DHCP_MESSAGE_TYPE) {
+			msg_type = *(uint8_t*)(option_header + 1);
+			break;
+		}
+
+		option_header = (DHCPOptionHeader*) (((uint8_t*)option_header) + sizeof(DHCPOptionHeader) + option_header->length);
+	}
+
+	switch (msg_type) {
+		case DHCP_OFFER:
+			printf("Offered IP ");
+			print_ip((uint8_t*) &msg->yiaddr);
+			printf("\n");
+
+			dhcp_state.offered_ip = msg->yiaddr;
+			dhcp_state.dhcp_server_ip = msg->siaddr;
+
+			printf("Making dhcp request\n");
+			dhcp_request();
+			break;
+
+		case DHCP_ACK:
+			if (memcmp((uint8_t*)&msg->yiaddr, (uint8_t*)&dhcp_state.offered_ip, 4) == 0) {
+				set_my_ip(dhcp_state.offered_ip);
+
+				printf("DHCP flow completed with IP address ");
+				print_ip((uint8_t*) &msg->yiaddr);
+				printf("\n");
+				return;
+			} else {
+				printf("DHCP flow error: DHCP acked unexpected address: ");
+								print_ip((uint8_t*) &msg->yiaddr);
+				printf("\n");
+			}
+			break;
+
+
+		default:
+			printf("Dropping dhcp message type %x\n", msg_type);
+	}
 }

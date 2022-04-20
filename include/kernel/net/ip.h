@@ -12,4 +12,7 @@ void send_ip(IPAddress source, IPAddress dest, uint8_t protocol, void *data, siz
 void print_ip(uint8_t *ip);
 void receive_ip(uint8_t *data, size_t data_len);
 
+void set_my_ip(IPAddress addr);
+IPAddress get_my_ip();
+
 #endif

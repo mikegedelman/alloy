@@ -97,7 +97,7 @@ void send_ip(IPAddress source, IPAddress dest, uint8_t protocol, void *data, siz
 	ip_buf[4] = header.identification;
 	ip_buf[6] = header.fragment_offset | (header.flags << 3);
 	ip_buf[8] = header.ttl;
-	printf("protocol: %x\n", header.protocol);
+	// printf("protocol: %x\n", header.protocol);
 	ip_buf[9] = header.protocol;
 
 	uint16_t final_checksum_be = compute_checksum((uint16_t*)ip_buf, 10);

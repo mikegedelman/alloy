@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <stddef.h>
 #include <kernel/string.h>
 
@@ -8,6 +9,20 @@ void *memcpy(void *dest, const void *src, size_t n) {
         ((unsigned char *) dest)[i] = ((unsigned char *) src)[i];
 
     return dest;
+}
+
+int memcmp(uint8_t *a, const uint8_t *b, size_t n) {
+    for (int i = 0; i < n; i++) {
+        if (*a < *b) {
+            return -1;
+        } else if (*a > *b) {
+            return 1;
+        }
+
+        a++;
+        b++;
+    }
+    return 0;
 }
 
 bool strcmp(char *a, char *b) {

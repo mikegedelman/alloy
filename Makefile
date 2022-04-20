@@ -26,10 +26,10 @@ user.bin:  userspace/crt0.S userspace/main.c
 	i686-elf-gcc -I./include -std=gnu11 -ffreestanding -O -Wall -Wextra $^ -nostdlib -o user.bin
 # 	i686-elf-objcopy user.elf -O binary user.bin
 
-.PHONY: clean run rust
-
 run: os-multiboot.bin
 	qemu-system-i386 -kernel os-multiboot.bin -serial stdio -hda hdd.img
 
 clean:
 	rm -rf *.o *.bin *.iso isodir
+
+.PHONY: clean run all

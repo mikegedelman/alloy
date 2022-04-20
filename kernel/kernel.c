@@ -47,7 +47,18 @@ void kernel_tasks() {
 
     rtl_8139_init();
 
+    register_udp_listener(68, receive_dhcp);
     dhcp_discover();
+    IPAddress my_ip;
+    while(1) {
+        my_ip = get_my_ip();
+        if (my_ip.parts[0] > 0) break;
+    }
+    printf("IP address set: ");
+    print_ip((uint8_t*)&my_ip);
+    printf("\n");
+
+    while(1) {}
 }
 
 void kernel_main(MultibootInfo *multiboot_info, uint32_t magic) {

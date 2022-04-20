@@ -4,6 +4,8 @@
 
 static uint8_t udp_buf[1500];
 
+static void (*registered_listeners[0xFFFF]) (uint8_t*, size_t);
+
 typedef struct  __attribute__((__packed__)) {
 	uint16_t source_port;
 	uint16_t destination_port;
@@ -26,9 +28,19 @@ void send_udp(IPAddress source_ip, uint16_t source_port, IPAddress dest_ip, uint
 
 void receive_udp(uint8_t *data, size_t data_len) {
 	UDPHeader *header = (UDPHeader*)data;
+	uint16_t port = ntohs(header->destination_port);
 
-	printf("Received %x bytes on UDP port %x\n", ntohs(header->message_length), ntohs(header->destination_port));
-	// just assuming it's DHCP for now lol
+	printf("Received %x bytes on UDP port %x\n", ntohs(header->message_length), port);
+	void (*listener)(uint8_t*, size_t) = registered_listeners[port];
+	if (listener == NULL) {
+		printf("No listener on UDP port %x - dropping packet.\n");
+		return;
+	}
 
-	receive_dhcp(data + sizeof(UDPHeader), data_len - sizeof(UDPHeader));
+	listener(data + sizeof(UDPHeader), data_len - sizeof(UDPHeader));
+	// receive_dhcp(data + sizeof(UDPHeader), data_len - sizeof(UDPHeader));
+}
+
+void register_udp_listener(uint16_t port, void (*fn)(uint8_t*, size_t)) {
+	registered_listeners[port] = fn;
 }
