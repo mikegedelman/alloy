@@ -50,8 +50,9 @@ void printf(char *format, ...) {
 						} 
 						puts(convert(i,10));
 						break; 
-			case 'u' : i = va_arg(arg, uint32_t); 		//Fetch Decimal/Integer argument
-						puts(convert(i,10));
+
+			case 'u' : u = va_arg(arg, uint32_t); 		//Fetch Decimal/Integer argument
+						puts(convert(u,10));
 						break; 
 						
 			case 'o': u = va_arg(arg, uint32_t); //Fetch Octal representation

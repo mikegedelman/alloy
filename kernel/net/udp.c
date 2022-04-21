@@ -32,10 +32,10 @@ void receive_udp(uint8_t *data, size_t data_len) {
 	UDPHeader *header = (UDPHeader*)data;
 	uint16_t port = ntohs(header->destination_port);
 
-	printf("Received %x bytes on UDP port %x\n", ntohs(header->message_length), port);
+	printf("Received %u bytes on UDP port %u\n", ntohs(header->message_length), port);
 	void (*listener)(uint8_t*, size_t) = registered_listeners[port];
 	if (listener == NULL) {
-		printf("No listener on UDP port %x - dropping packet.\n");
+		printf("No listener on UDP port %u - dropping packet.\n", port);
 		return;
 	}
 

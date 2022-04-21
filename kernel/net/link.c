@@ -48,9 +48,6 @@ MacAddress current_mac() {
 }
 
 void send_packet(MacAddress dest, uint16_t frame_type, uint8_t *data_buf, size_t data_len) {
-	printf("send_packet with mac ");
-	print_mac(&dest);
-	printf("\n");
 	size_t buf_pos = 0;
 	memcpy(packet_buf, &dest, 6);
 	buf_pos += 6;
@@ -85,8 +82,6 @@ typedef struct __attribute__((__packed__)) {
 void ethernet_receive_packet(uint8_t *data, size_t data_len) {
 	EthernetHeader *header = (EthernetHeader*) data;
 	uint16_t frame_type = ntohs(header->frame_type_be);
-
-	printf("ETHERNET data_len: %x\n", data_len);
 
 	switch (frame_type) {
 		case FRAME_TYPE_IPV4:

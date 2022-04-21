@@ -132,7 +132,6 @@ void tcp_syn(TCPConfig *config) {
 	uint8_t tcp_buf[data_len];
 
 	TCPHeader *header = (TCPHeader*) tcp_buf;
-	printf("sending seq_num=%x, ack_num=%x\n", config->my_seq_num, 0);
 	build_tcp_header(header, config, config->my_seq_num, 0, 6, SYN);
 
 	// TODO don't finagle this
@@ -154,7 +153,6 @@ void tcp_ack(TCPConfig *config, uint16_t extra_flags) {
 	uint8_t tcp_buf[data_len];
 
 	TCPHeader *header = (TCPHeader*) tcp_buf;
-	printf("sending seq_num=%x, ack_num=%x\n", config->my_seq_num, config->server_seq_num);
 	build_tcp_header(header, config, config->my_seq_num, config->server_seq_num, 5, ACK | extra_flags);
 	header->checksum = tcp_checksum(config, tcp_buf, data_len);
 
@@ -167,21 +165,20 @@ void tcp_ack(TCPConfig *config, uint16_t extra_flags) {
 void receive_tcp(uint8_t const *data, size_t data_len) {
 	TCPHeader *header = (TCPHeader*)data;
 	uint16_t host_port = ntohs(header->dest_port);
+	printf("Received %u bytes on TCP port %u\n", data_len, host_port);
 	
 	TCPConfig *config = &tcp_config[host_port];
 	if (config->tcp_state == CLOSED) {
-		printf("Dropping %x bytes on TCP port %x: port closed\n", data_len, host_port);
+		printf("Dropping %u bytes on TCP port %u: port closed\n", data_len, host_port);
 		return;
 	}
 
 	uint16_t flags = 0x1FF & ntohs(header->do_rsv_flags);
-	printf("flags: %x\n", flags);
 
 	if (flags & (SYN | ACK) && config->tcp_state == SYN_SENT) {
 		config->my_seq_num++;
 		config->server_seq_num = ntohl(header->seq_num) + 1;
 		tcp_ack(config, 0);
-		// config->server_seq_num++;
 	}
 	else if (config->tcp_state == CLOSE_WAIT) {
 		if (flags & ACK) {
@@ -189,7 +186,7 @@ void receive_tcp(uint8_t const *data, size_t data_len) {
 			config->tcp_state = CLOSED;
 			printf("TCP connection to ");
 			print_ip(&config->dest_ip);
-			printf(":%x closed.\n", config->dest_port);
+			printf(":%u closed.\n", config->dest_port);
 		}
 	}
 	else if (config->tcp_state == ESTABLISHED) {
@@ -199,19 +196,12 @@ void receive_tcp(uint8_t const *data, size_t data_len) {
 			config->server_ack = htons(header->ack_num);
 		}
 		if (flags & PSH) {
-			printf("flags & PSH %x\n", flags & PSH);
-			printf("TCP header size: %x\ndata_len: %x\n", tcp_header_size, data_len);
 			size_t payload_len = data_len - tcp_header_size;
-			printf("payload len: %x\n", payload_len);
-			// printf("config->seq_num: %x\n", config->seq_num);
-			printf("server seq num: %x -> ", config->server_seq_num);
+
 			config->server_seq_num += payload_len;
-			printf("%x\n", config->server_seq_num);
-			// uint32_t seq_num = ntohl(header->seq_num);
 			tcp_ack(config, 0);
 
 			config->listener(data + tcp_header_size, payload_len);
-			// config->seq_num = config->seq_num + payload_len + 1;
 		}
 		if (flags & FIN) {
 			config->server_seq_num++;
@@ -262,12 +252,10 @@ size_t tcp_send(uint16_t host_port, void const *data, size_t data_len) {
 
 	TCPHeader *header = (TCPHeader*) tcp_buf;
 	TCPConfig *config = &tcp_config[host_port];
-	printf("sending seq_num=%x, ack_num=%x\n", config->my_seq_num, config->server_seq_num);
 	build_tcp_header(header, config, config->my_seq_num, config->server_seq_num, 5, ACK | PSH);
 	memcpy(tcp_buf + sizeof(TCPHeader), data, data_len);
 	header->checksum = tcp_checksum(config, tcp_buf, total_len);
 
-	// printf("my_seq_num: %x, add %x\n", config->my_seq_num, data_len);
 	config->my_seq_num += data_len;
 	IPAddress my_ip = get_my_ip();
 	send_ip(my_ip, config->dest_ip, TCP_IP_PROTOCOL, tcp_buf, total_len);

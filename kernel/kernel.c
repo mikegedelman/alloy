@@ -40,7 +40,7 @@ void setup_memory(MultibootInfo *multiboot_info, uint32_t magic) {
     heap_init();
 }
 
-void tcp_listener(uint8_t *data, size_t data_len) {
+void tcp_listener(uint8_t *data, size_t _data_len) {
     printf("%s", (char *) data);
 }
 
@@ -62,15 +62,12 @@ void kernel_tasks() {
     print_ip(&my_ip);
     printf("\n");
 
-    IPAddress dest = new_ip(10, 0, 2, 2);
-    uint16_t host_port = tcp_open(dest, 5000, tcp_listener);
-    printf("Opened a TCP connection on host port %x\n", host_port);
-    const char* http = "GET /index.html HTTP/1.1 \r\nConnection: Keep-Alive\r\n\r\n";
-    size_t http_len = strlen(http);
-    printf("HTTP string len: %x\n", http_len);
-    tcp_send(host_port, http, http_len);
-
-    while(1) {}
+    IPAddress dest = new_ip(54, 192, 58, 2);
+    uint16_t host_port = tcp_open(dest, 80, tcp_listener);
+    printf("Opened a TCP connection on host port %u\n", host_port);
+    const char* http_req = "GET /index.html HTTP/1.1\r\nConnection: Close\r\n\r\n";
+    tcp_send(host_port, http_req, strlen(http_req));
+    while(tcp_is_open(host_port)) {}
 }
 
 void kernel_main(MultibootInfo *multiboot_info, uint32_t magic) {

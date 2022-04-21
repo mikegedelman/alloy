@@ -28,7 +28,7 @@ bool ip_eq(IPAddress const *a, IPAddress const *b) {
 }
 
 void print_ip(IPAddress const *ip) {
-		printf("%x.%x.%x.%x", ip->parts[0], ip->parts[1], ip->parts[2], ip->parts[3]);
+		printf("%u.%u.%u.%u", ip->parts[0], ip->parts[1], ip->parts[2], ip->parts[3]);
 }
 
 IPAddress new_ip(uint8_t a, uint8_t b, uint8_t c, uint8_t d) {
@@ -142,7 +142,6 @@ void receive_ip(uint8_t *data, size_t data_len) {
 			receive_udp(data + 20, message_length);
 			break;
 		case IP_PROTO_TCP:
-			printf("IP: data_len: %x\n", message_length);
 			receive_tcp(data + 20, message_length);
 			break;
 		default:

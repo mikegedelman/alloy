@@ -108,12 +108,12 @@ void rtl_8139_receive_packet() {
 		uint16_t packet_len = rx_size - 4;
 
 		if (rx_status & (RxBadSymbol | RxRunt | RxTooLong | RxCRCErr | RxBadAlign)) {
-			printf("8139: rx error: %x\n", rx_status);
+			// printf("8139: rx error: %x\n", rx_status);
 			// TODO: reset the chip
 			return;
 		}
 		if ((rx_status & (RxStatusOK)) == 0) {
-			printf("8139: RxStatusOK == 0. Aborting.\n");
+			// printf("8139: RxStatusOK == 0. Aborting.\n");
 			return;
 		}
 
@@ -139,11 +139,11 @@ void rtl_8139_handler(void *data) {
 	outw(rtl_info.base_io + IntrStatus, status);
 
   if(status & TOK) {
-      printf("(rtl8139) Packet sent\n");
+      // printf("(rtl8139) Packet sent\n");
       outw(rtl_info.base_io + 0x3E, 0x5);
   }
   if (status & ROK) {
-      printf("(rtl8139) Received packet\n");
+      // printf("(rtl8139) Received packet\n");
       rtl_8139_receive_packet();
       outw(rtl_info.base_io + 0x3E, 0x5);
   }

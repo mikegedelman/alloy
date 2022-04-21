@@ -3,10 +3,6 @@
 
 #define ARP_ETHERTYPE 0x0806
 
-// typedef struct __attribute__((__packed__)) {
-
-// } ARPPacketHeader;
-
 typedef struct __attribute__((__packed__)) {
 	uint16_t hardware_type; // Ethernet: 0x1
 	uint16_t protocol_type; // IP: 0x0800
@@ -21,16 +17,6 @@ typedef struct __attribute__((__packed__)) {
 	IPAddress dest_proto_addr;
 } ARPPacket;
 
-// ARPPacketHeader new_arp_packet_header(uint16_t opcode) {
-// 	ARPPacketHeader header;
-
-// }
-
-// ARPPacket new_arp_packet(uint16_t opcode) {
-
-// 	return packet;
-// }
-
 typedef struct {
 	IPAddress ip;
 	MacAddress mac;
@@ -38,29 +24,6 @@ typedef struct {
 
 #define ARP_MAC_CACHE_LEN 255
 static MacAddressCache arp_cache[ARP_MAC_CACHE_LEN];
-
-// static bool waiting_for_cache;
-
-// size_t serialize_arp(ARPPacket *packet, uint8_t *buf) {
-// 	size_t buf_pos = 0;
-// 	memcpy(buf, (void*)&packet->header, sizeof(ARPPacketHeader));
-// 	buf_pos += sizeof(ARPPacketHeader);
-
-// 	memcpy(buf + buf_pos, (void*)&packet->src_hw_addr, 6);
-// 	buf_pos += 6;
-
-// 	memcpy(buf + buf_pos, (void*)&packet->src_proto_addr, 4);
-// 	buf_pos += 4;
-
-// 	memcpy(buf + buf_pos, (void*)&packet->dest_hw_addr, 6);
-// 	buf_pos += 6;
-
-// 	memcpy(buf + buf_pos, (void*)&packet->dest_proto_addr, 4);
-// 	buf_pos += 4;
-
-// 	return buf_pos;
-// }
-
 
 void arp_request(IPAddress unknown_ip, IPAddress my_ip) {
 	uint8_t buf[64];
@@ -117,7 +80,6 @@ MacAddress arp_resolve(IPAddress unknown_ip, IPAddress my_ip) {
 	while (1) {
 		mac = check_cache(unknown_ip);
 		if (mac != NULL) {
-			printf("Resolved\n");
 			return *mac;
 		}
 	}
