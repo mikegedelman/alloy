@@ -25,7 +25,7 @@ int memcmp(uint8_t *a, const uint8_t *b, size_t n) {
     return 0;
 }
 
-bool strcmp(char *a, char *b) {
+bool strcmp(const char *a, const char *b) {
     size_t cur_pos = 0;
     while (a[cur_pos] != 0 && b[cur_pos] != 0) {
         if (a[cur_pos] != b[cur_pos]) {
@@ -35,4 +35,13 @@ bool strcmp(char *a, char *b) {
     }
 
     return a[cur_pos] == b[cur_pos];
+}
+
+size_t strlen(const char *c) {
+    size_t count = 0;
+    while (*c != 0) {
+        count++;
+        c++;
+    }
+    return count;
 }

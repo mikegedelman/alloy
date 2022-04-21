@@ -1,19 +1,9 @@
-// https://wiki.osdev.org/RTL8139
-// https://github.com/szhou42/osdev/blob/master/src/kernel/drivers/rtl8139.c
-// https://www.cs.usfca.edu/~cruse/cs326f04/RTL8139_ProgrammersGuide.pdf
-#include <kernel/drivers/pci.h>
-#include <kernel/drivers/pic8259.h>
-#include <kernel/mem/heap.h>
-#include <kernel/mem/virtual.h>
-#include <kernel/cpu.h>
-#include <kernel/stdio.h>
-#include <kernel/interrupts.h>
-#include <kernel/string.h>
-#include <kernel/inet.h>
-
-#include <kernel/net/link.h>
-
-#include <stdint.h>
+/*
+ * https://wiki.osdev.org/RTL8139
+ * https://github.com/szhou42/osdev/blob/master/src/kernel/drivers/rtl8139.c
+ * https://www.cs.usfca.edu/~cruse/cs326f04/RTL8139_ProgrammersGuide.pdf
+ */
+#include <kernel/all.h>
 
 #define ROK     (1<<0)
 #define RER     (1<<1)
@@ -99,27 +89,23 @@ typedef struct {
 	uint8_t cur_tx;
 } Rtl8319Info;
 
+#define RX_BUF_SIZE (8192+16+1500)
+
 static Rtl8319Info rtl_info;
-static uint8_t* rtl_buf = NULL;
+static uint8_t rtl_buf[RX_BUF_SIZE];
 static uint16_t current_packet_offset;
 
-#define RX_BUF_SIZE (8192+16+1500)
+
 #define RX_READ_POINTER_MASK (~3)
 
 void rtl_8139_receive_packet() {
 	uint8_t cmd_in = inb(rtl_info.base_io + ChipCmd);
 	while((cmd_in & RxBufEmpty) == 0) {
-		printf("ChipCmd reg: %x\n", cmd_in);
 		uint8_t *rtl_buf_cur = rtl_buf + current_packet_offset;
-		// uint16_t *buf_as_u16 = (uint16_t*)(rtl_buf_cur);
-		// printf("header: %x\n", buf_as_u16[0]);
-		// size_t packet_len = buf_as_u16[1];
-		// printf("packet length: %x\n", packet_len);
 		uint32_t rx_status = *(uint32_t*) rtl_buf_cur;
-		printf("rx status: %x\n", rx_status);
+
 		uint16_t rx_size = rx_status >> 16;
 		uint16_t packet_len = rx_size - 4;
-		printf("packet length: %x\n", packet_len);
 
 		if (rx_status & (RxBadSymbol | RxRunt | RxTooLong | RxCRCErr | RxBadAlign)) {
 			printf("8139: rx error: %x\n", rx_status);
@@ -132,53 +118,35 @@ void rtl_8139_receive_packet() {
 		}
 
 
-		uint8_t *packet = (uint8_t*)heap_alloc(packet_len);
+		uint8_t packet[packet_len];
 		memcpy(packet, rtl_buf_cur + 4, packet_len);
 		ethernet_receive_packet(packet, packet_len);
 
 
 		current_packet_offset = (current_packet_offset + rx_size + 4 + 3) & RX_READ_POINTER_MASK;
 
-	    if (current_packet_offset > RX_BUF_SIZE) {
-	        current_packet_offset -= RX_BUF_SIZE;
-	    }
+    if (current_packet_offset > RX_BUF_SIZE) {
+        current_packet_offset -= RX_BUF_SIZE;
+    }
 
-	    printf("writing current packet ptr: %x\n", current_packet_offset - 0x10);
-	    outw(rtl_info.base_io + CAPR, current_packet_offset - 0x10);
-	    cmd_in = inb(rtl_info.base_io + ChipCmd);
+    outw(rtl_info.base_io + CAPR, current_packet_offset - 0x10);
+    cmd_in = inb(rtl_info.base_io + ChipCmd);
 	}
 }
 
 void rtl_8139_handler(void *data) {
-	// cli();
-	// printf("8139 handler - data: %x\n", (uintptr_t) data);
-	    //qemu_printf("RTL8139 interript was fired !!!! \n");
-	printf("8139 handler\n");
-
-    uint16_t status = inw(rtl_info.base_io + IntrStatus);
+  uint16_t status = inw(rtl_info.base_io + IntrStatus);
 	outw(rtl_info.base_io + IntrStatus, status);
 
-    if(status & TOK) {
-        printf("(rtl8139) Packet sent\n");
-        outw(rtl_info.base_io + 0x3E, 0x5);
-    }
-    if (status & ROK) {
-        printf("(rtl8139) Received packet\n");
-        rtl_8139_receive_packet();
-        outw(rtl_info.base_io + 0x3E, 0x5);
-    }
-
-    // outw(rtl_info.base_io + 0x3C, 0xFFFF);
-    // io_wait();
-    // io_wait();
-    // io_wait();
-    // io_wait();
-    // uint16_t mask = inw(rtl_info.base_io + 0x3C);
-    // printf("mask: %x\n", mask);
-    
-    // outw(rtl_info.base_io + 0x3E, 0xFFFF);
-    // pic_irq_clear_mask(32 + 0xB);
-    // sti();
+  if(status & TOK) {
+      printf("(rtl8139) Packet sent\n");
+      outw(rtl_info.base_io + 0x3E, 0x5);
+  }
+  if (status & ROK) {
+      printf("(rtl8139) Received packet\n");
+      rtl_8139_receive_packet();
+      outw(rtl_info.base_io + 0x3E, 0x5);
+  }
 }
 
 
@@ -246,7 +214,7 @@ void rtl_8139_init() {
 		return;
 	}
 
-	printf("Initializing the 8139.\n");
+	// printf("Initializing the 8139.\n");
 
 	// Turn the device on.
 	outb(rtl_info.base_io + 0x52, 0x0);
@@ -254,9 +222,6 @@ void rtl_8139_init() {
 	// Check its status register.
 	outb(rtl_info.base_io + 0x37, 0x10);
  	while( (inb(rtl_info.base_io + 0x37) & 0x10) != 0) { }
-
- 	// Send a *physical* memory pointer to a buffer that can be used for 
- 	rtl_buf = heap_alloc(RX_BUF_SIZE);
 
 	// TODO - this is a pretty sloppy way to convert the address to physical..
  	outl(rtl_info.base_io + 0x30, (uintptr_t)(rtl_buf - BASE_VIRTUAL_ADDRESS));
@@ -272,7 +237,7 @@ void rtl_8139_init() {
     outb(rtl_info.base_io + 0x37, 0x0C);
 
     uint32_t int_line = pci_config_read(rtl_info.pci_bus, rtl_info.pci_device, rtl_info.pci_fn, 0x3C) & 0xFF;
-    printf("8139 interrupt line: %x\n", int_line);
+    // printf("8139 interrupt line: %x\n", int_line);
     register_interrupt_handler(32 + int_line, rtl_8139_handler);
     pic_irq_clear_mask(32 + int_line);
 

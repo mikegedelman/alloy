@@ -4,7 +4,9 @@
 #include <kernel/drivers/pic8259.h>
 #include <kernel/drivers/uart16550.h>
 
-static void (*registered_interrupts[256]) (void*);
+typedef void (*interrupt_handler_fn) (void*);
+
+static interrupt_handler_fn registered_interrupts[256];
 
 void init_interrupts() {
     for (int i = 0; i < 256; i++) {
@@ -12,7 +14,7 @@ void init_interrupts() {
     }
 }
 
-void register_interrupt_handler(size_t irq_num, void (*fn)(void*)) {
+void register_interrupt_handler(size_t irq_num, interrupt_handler_fn fn) {
     registered_interrupts[irq_num] = fn;
 }
 
@@ -29,9 +31,9 @@ void isr_handler(uint32_t x, uint32_t info) {
     // term_putchar('?');)
     // char scancode;
 
-    if (x != 0x20) {
-        printf("**INTERRUPT %x \n", x);
-    }
+    // if (x != 0x20) {
+    //     printf("**INTERRUPT %x \n", x);
+    // }
 
     if (x < 32) {
         printf("exception %x", x);

@@ -14,5 +14,6 @@ MacAddress current_mac();
 
 void send_packet(MacAddress dest, uint16_t frame_type, uint8_t *data_buf, size_t data_len);
 void ethernet_receive_packet(uint8_t *data, size_t data_len);
+void print_mac(MacAddress const *mac);
 
 #endif

@@ -3,6 +3,7 @@
 
 #include <kernel/net/ip.h>
 
-void arp_request(IPAddress unknown_ip, IPAddress my_ip);
+MacAddress arp_resolve(IPAddress unknown_ip, IPAddress my_ip);
+void arp_receive(uint8_t *data);
 
 #endif

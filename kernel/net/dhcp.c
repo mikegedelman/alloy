@@ -3,6 +3,7 @@
 static uint8_t dhcp_buf[1500];
 
 enum DHCPOption {
+	DHCP_OPTION_ROUTER = 0x03,
 	DHCP_MESSAGE_TYPE = 0x35,
 	DHCP_REQUESTED_IP = 0x32,
 	DHCP_SERVER_IP = 0x36,
@@ -20,6 +21,7 @@ typedef struct {
 	bool waiting_for_lease;
 	IPAddress offered_ip;
 	IPAddress dhcp_server_ip;
+	IPAddress router_ip;
 } DHCPState;
 
 static DHCPState dhcp_state;
@@ -47,6 +49,10 @@ typedef struct __attribute__((__packed__)) {
 	uint8_t option_type;
 	uint8_t length;
 } DHCPOptionHeader;
+
+IPAddress dhcp_get_router_ip() {
+	return dhcp_state.router_ip;
+}
 
 void dhcp_message_type(uint8_t typ, uint8_t *buf) {
 	buf[0] = 0x35;
@@ -187,44 +193,64 @@ void dhcp_request() {
 	send_udp(zero, 68, broad, 67, dhcp_buf, buf_pos);
 }
 
-void receive_dhcp(uint8_t *data, size_t data_len) {
-	DHCPMessage *msg = (DHCPMessage*) data;
-
-	uint8_t msg_type = 0;
-	DHCPOptionHeader *option_header = (DHCPOptionHeader*) (data + sizeof(DHCPMessage) + 4);
+DHCPOptionHeader *find_dhcp_option(uint8_t option_type, DHCPMessage *msg_base) {
+	DHCPOptionHeader *option_header = (DHCPOptionHeader*) ((uint8_t*)msg_base + sizeof(DHCPMessage) + 4);
 	while (option_header->option_type != DHCP_END_OPTIONS) {
-		if (option_header->option_type == DHCP_MESSAGE_TYPE) {
-			msg_type = *(uint8_t*)(option_header + 1);
-			break;
+		if (option_header->option_type == option_type) {
+			// msg_type = *(uint8_t*)(option_header + 1);
+			return option_header;
 		}
 
 		option_header = (DHCPOptionHeader*) (((uint8_t*)option_header) + sizeof(DHCPOptionHeader) + option_header->length);
 	}
 
+	return NULL;
+}
+
+void receive_dhcp(uint8_t *data, size_t data_len) {
+	DHCPMessage *msg = (DHCPMessage*) data;
+
+	DHCPOptionHeader *msg_type_header = find_dhcp_option(DHCP_MESSAGE_TYPE, msg);
+	if (msg_type_header == NULL) {
+		printf("Couldn't find DHCP message type option. Aborting.\n");
+		return;
+	}
+	uint8_t msg_type = *(uint8_t*)(msg_type_header + 1);
+
 	switch (msg_type) {
 		case DHCP_OFFER:
 			printf("Offered IP ");
-			print_ip((uint8_t*) &msg->yiaddr);
+			print_ip(&msg->yiaddr);
 			printf("\n");
 
 			dhcp_state.offered_ip = msg->yiaddr;
 			dhcp_state.dhcp_server_ip = msg->siaddr;
 
-			printf("Making dhcp request\n");
+			DHCPOptionHeader *router_option_header = find_dhcp_option(DHCP_OPTION_ROUTER, msg);
+			if (router_option_header == NULL) {
+				printf("Warning: no router info found in DHCP offer message.\n");
+			} else {
+				dhcp_state.router_ip = *(IPAddress*)(router_option_header + 1);
+				printf("Router IP: ");
+				print_ip(&dhcp_state.router_ip);
+				printf("\n");
+			}
+
+			// printf("Making dhcp request\n");
 			dhcp_request();
 			break;
 
 		case DHCP_ACK:
-			if (memcmp((uint8_t*)&msg->yiaddr, (uint8_t*)&dhcp_state.offered_ip, 4) == 0) {
+			if (ip_eq(&msg->yiaddr, &dhcp_state.offered_ip)) {
 				set_my_ip(dhcp_state.offered_ip);
 
 				printf("DHCP flow completed with IP address ");
-				print_ip((uint8_t*) &msg->yiaddr);
+				print_ip(&msg->yiaddr);
 				printf("\n");
 				return;
 			} else {
 				printf("DHCP flow error: DHCP acked unexpected address: ");
-								print_ip((uint8_t*) &msg->yiaddr);
+				print_ip(&msg->yiaddr);
 				printf("\n");
 			}
 			break;

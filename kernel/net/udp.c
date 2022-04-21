@@ -4,7 +4,9 @@
 
 static uint8_t udp_buf[1500];
 
-static void (*registered_listeners[0xFFFF]) (uint8_t*, size_t);
+typedef void (*udp_listener) (uint8_t*, size_t);
+
+static udp_listener registered_listeners[0xFFFF];
 
 typedef struct  __attribute__((__packed__)) {
 	uint16_t source_port;
@@ -41,6 +43,6 @@ void receive_udp(uint8_t *data, size_t data_len) {
 	// receive_dhcp(data + sizeof(UDPHeader), data_len - sizeof(UDPHeader));
 }
 
-void register_udp_listener(uint16_t port, void (*fn)(uint8_t*, size_t)) {
+void register_udp_listener(uint16_t port, udp_listener fn) {
 	registered_listeners[port] = fn;
 }

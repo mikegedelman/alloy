@@ -8,6 +8,11 @@ typedef struct {
 	IPAddress my_ip;
 } IPState;
 
+enum IPProtocolType {
+	IP_PROTO_UDP = 0x11,
+	IP_PROTO_TCP = 0x06
+};
+
 static IPState ip_state;
 
 void set_my_ip(IPAddress addr) {
@@ -18,8 +23,12 @@ IPAddress get_my_ip() {
 	return ip_state.my_ip;
 }
 
-void print_ip(uint8_t *ip) {
-		printf("%x.%x.%x.%x", ip[0], ip[1], ip[2], ip[3]);
+bool ip_eq(IPAddress const *a, IPAddress const *b) {
+	return memcmp((uint8_t*)a, (uint8_t*)b, 4) == 0;
+}
+
+void print_ip(IPAddress const *ip) {
+		printf("%x.%x.%x.%x", ip->parts[0], ip->parts[1], ip->parts[2], ip->parts[3]);
 }
 
 IPAddress new_ip(uint8_t a, uint8_t b, uint8_t c, uint8_t d) {
@@ -31,7 +40,7 @@ IPAddress new_ip(uint8_t a, uint8_t b, uint8_t c, uint8_t d) {
 	return ip;
 }
 
-typedef struct {
+typedef struct __attribute__((__packed__)) {
 	uint8_t version; // 4 - (4 bits)
 	uint8_t header_len; // 5 unless options used (4 bits)
 	uint8_t dscp_and_ecn; // prob just 0 (6/2 bits)
@@ -66,7 +75,8 @@ IPHeader new_ip_header(IPAddress source, IPAddress dest, uint8_t protocol, size_
 uint16_t compute_checksum(uint16_t *addr, size_t count) {
   register uint32_t sum = 0;
   while (count > 1) {
-    sum += * addr++;
+    sum += htons(*addr);
+    addr++;
     count -= 2;
   }
   //if any bytes left, pad the bytes and add
@@ -79,7 +89,7 @@ uint16_t compute_checksum(uint16_t *addr, size_t count) {
   }
   //one's complement
   sum = ~sum;
-  return ((uint16_t)sum);
+  return ((uint16_t) htons(sum));
 }
 
 void send_ip(IPAddress source, IPAddress dest, uint8_t protocol, void *data, size_t data_len) {
@@ -99,35 +109,41 @@ void send_ip(IPAddress source, IPAddress dest, uint8_t protocol, void *data, siz
 	ip_buf[8] = header.ttl;
 	// printf("protocol: %x\n", header.protocol);
 	ip_buf[9] = header.protocol;
-
-	uint16_t final_checksum_be = compute_checksum((uint16_t*)ip_buf, 10);
-
-	memcpy(ip_buf + 10, &final_checksum_be, 2);
+	ip_buf[10] = 0; // set checksum to 0 initially
+	ip_buf[11] = 0;
 	memcpy(ip_buf + 12, (void*)&header.source, 4);
 	memcpy(ip_buf + 16, (void*)&header.dest, 4);
 	memcpy(ip_buf + 20, data, data_len);
 
-	MacAddress broadcast_mac = new_mac(0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF);
-	send_packet(broadcast_mac, IPV4_ETHERTYPE, ip_buf, data_len + 20);
+	uint16_t final_checksum_be = compute_checksum((uint16_t*)ip_buf, 20);
+	memcpy(ip_buf + 10, &final_checksum_be, 2);
+
+	// I'm not so sure about this...
+	IPAddress broadcast_ip = new_ip(255, 255, 255, 255);
+	MacAddress target_mac;
+	if (ip_eq(&dest, &broadcast_ip)) {
+		target_mac = new_mac(0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF);
+	} else {
+		IPAddress router_ip = dhcp_get_router_ip();
+		target_mac = arp_resolve(router_ip, source);
+	}
+	send_packet(target_mac, IPV4_ETHERTYPE, ip_buf, data_len + 20);
 }
 
 void receive_ip(uint8_t *data, size_t data_len) {
-	IPAddress *source = (IPAddress*)(data + 12);
-	IPAddress *dest = (IPAddress*)(data + 16);
+	// IPHeader *header = (IPHeader*) data; TODO make this work
 
-	printf("source IP: ");
-	print_ip((uint8_t*) source);
-	printf("\n");
-	printf("dest IP: ");
-	print_ip((uint8_t*) dest);
-	printf("\n");
-
+	// Maybe check data_len against the IP header's message length?
 	uint8_t protocol = data[9];
-	printf("protocol: %x\n", protocol);
+	size_t message_length = ntohs(*(uint16_t*)(data + 2)) - 20;
 
 	switch (protocol) {
-		case 0x11:
-			receive_udp(data + 20, data_len - 20);
+		case IP_PROTO_UDP:
+			receive_udp(data + 20, message_length);
+			break;
+		case IP_PROTO_TCP:
+			printf("IP: data_len: %x\n", message_length);
+			receive_tcp(data + 20, message_length);
 			break;
 		default:
 			printf("Unsupported protocol %x. Dropping packet.\n", protocol);

@@ -7,8 +7,13 @@ static bool _did_init_mac = false;
 
 static uint8_t packet_buf[1518];
 
-void print_mac(uint8_t *mac) {
-	printf("%x:%x:%x:%x:%x:%x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+enum FrameType {
+	FRAME_TYPE_IPV4 = 0x800,
+	FRAME_TYPE_ARP  = 0x806
+};
+
+void print_mac(MacAddress const *mac) {
+	printf("%x:%x:%x:%x:%x:%x", mac->parts[0], mac->parts[1], mac->parts[2], mac->parts[3], mac->parts[4], mac->parts[5]);
 }
 
 MacAddress new_mac_from_array(uint8_t parts[6]) {
@@ -43,6 +48,9 @@ MacAddress current_mac() {
 }
 
 void send_packet(MacAddress dest, uint16_t frame_type, uint8_t *data_buf, size_t data_len) {
+	printf("send_packet with mac ");
+	print_mac(&dest);
+	printf("\n");
 	size_t buf_pos = 0;
 	memcpy(packet_buf, &dest, 6);
 	buf_pos += 6;
@@ -76,16 +84,18 @@ typedef struct __attribute__((__packed__)) {
 
 void ethernet_receive_packet(uint8_t *data, size_t data_len) {
 	EthernetHeader *header = (EthernetHeader*) data;
-	printf("dest mac: ");
-	print_mac((uint8_t*) &header->dest);
-	printf("\n");
+	uint16_t frame_type = ntohs(header->frame_type_be);
 
-	printf("source mac: ");
-	print_mac((uint8_t*) &header->src);
-	printf("\n");
+	printf("ETHERNET data_len: %x\n", data_len);
 
-	printf("frame type: %x", ntohs(header->frame_type_be));
-	printf("\n");
-
-	receive_ip(data + sizeof(EthernetHeader), data_len - sizeof(EthernetHeader));
+	switch (frame_type) {
+		case FRAME_TYPE_IPV4:
+			receive_ip(data + sizeof(EthernetHeader), data_len - sizeof(EthernetHeader));
+			break;
+		case FRAME_TYPE_ARP:
+			arp_receive(data + sizeof(EthernetHeader));
+			break;
+		default:
+			printf("Unknown ether frame protocol type: %x", frame_type);
+	}
 }

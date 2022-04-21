@@ -8,6 +8,6 @@
 stdout
 build/
 bochsout.txt
-dump.dat
+*.dat
 serial.raw
 isodir/
