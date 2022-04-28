@@ -6,6 +6,10 @@ REPO=$(pwd)
 SYSROOT=$REPO/alloy
 PREFIX="$HOME/opt/cross"
 
+AUTOCONF_VERSION="autoconf-2.69"
+AUTOMAKE_VERSION="automake-1.15.1"
+BINUTILS_VERSION="binutils-2.38"
+GCC_VERSION="gcc-11.2.0"
 
 cd build || (echo "missing build dir"; exit)
 
@@ -15,30 +19,32 @@ export PATH="$TOOLS_PREFIX/bin:$PATH"
 if [[ ! -f $TOOLS_PREFIX/bin/autoconf ]]; then
   mkdir -p $TOOLS_PREFIX
 
-  if [[ ! -d autoconf-2.69 ]]; then
-    if [[ ! -f autoconf-2.69.tar.xz ]]; then
-      curl https://ftp.gnu.org/gnu/autoconf/autoconf-2.69.tar.xz -o autoconf-2.69.tar.xz
+  if [[ ! -d $AUTOCONF_VERSION ]]; then
+    if [[ ! -f "$AUTOCONF_VERSION.tar.xz" ]]; then
+      curl https://ftp.gnu.org/gnu/autoconf/$AUTOCONF_VERSION.tar.xz -o "$AUTOCONF_VERSION.tar.xz"
     fi
 
-    tar xf autoconf-2.69.tar.xz
+    tar xf $AUTOCONF_VERSION.tar.xz
   fi
 
   rm -rf autoconf
   mkdir autoconf
   cd autoconf || exit
-  ../autoconf-2.69/configure --prefix="$TOOLS_PREFIX"
+  ../$AUTOCONF_VERSION/configure --prefix="$TOOLS_PREFIX"
   make -j15
   make install
   cd $REPO/build || exit
 fi
 
 if [[ ! -f $TOOLS_PREFIX/bin/automake ]]; then
-  if [[ ! -d automake-1.15.1 ]]; then
-    if [[ ! -f automake-1.15.1.tar.xz ]]; then
-      curl https://ftp.gnu.org/gnu/autoconf/automake-1.15.1.tar.xz -o automake-1.15.1.tar.xz
+  cd $REPO/build || exit
+
+  if [[ ! -d $AUTOMAKE_VERSION ]]; then
+    if [[ ! -f "$AUTOMAKE_VERSION.tar.xz" ]]; then
+      curl "https://ftp.gnu.org/gnu/automake/$AUTOMAKE_VERSION.tar.xz" -o "$AUTOMAKE_VERSION.tar.xz"
     fi
 
-    tar xf automake-1.15.1.tar.xz
+    tar xf $AUTOMAKE_VERSION.tar.xz || exit
   fi
 
   echo $TOOLS_PREFIX
@@ -46,7 +52,7 @@ if [[ ! -f $TOOLS_PREFIX/bin/automake ]]; then
   rm -rf automake
   mkdir automake
   cd automake || exit
-  ../automake-1.15.1/configure --prefix="$TOOLS_PREFIX"
+  ../$AUTOMAKE_VERSION/configure --prefix="$TOOLS_PREFIX"
   make -j15
   make install
   cd $REPO/build || exit
@@ -57,14 +63,26 @@ SYSROOT=$REPO/alloy
 if [[ ! -f $SYSROOT/usr/local/bin/i686-alloy-as ]]; then
   cd $REPO/build || exit
 
-  cd $REPO/toolchain/binutils/patches || exit
-  find . -type f -exec patch -u $REPO/build/binutils-alloy/{} -i {} \;
+  if [[ ! -d $REPO/build/binutils-alloy ]]; then
+    if [[ ! -d "$REPO/build/$BINUTILS_VERSION" ]]; then
+      if [[ ! -f  "$REPO/build/$BINUTILS_VERSION.tar.xz" ]]; then
+        curl "https://ftp.gnu.org/gnu/binutils/$BINUTILS_VERSION.tar.xz" -o "$BINUTILS_VERSION.tar.xz" || exit
+      fi
 
-  cd $REPO/toolchain/bintuils/files || exit
-  cp -r ./* $REPO/build/binutils-alloy/
+      tar xf "$BINUTILS_VERSION.tar.xz"
+    fi
 
-  cd $REPO/build/binutils-alloy/ld || exit
-  automake
+    cp -r "$REPO/build/$BINUTILS_VERSION" $REPO/build/binutils-alloy
+
+    cd $REPO/toolchain/binutils/patches || exit
+    find . -type f -exec patch -u $REPO/build/binutils-alloy/{} -i {} \;
+
+    cd $REPO/toolchain/binutils/files || exit
+    cp -r ./* $REPO/build/binutils-alloy/
+
+    cd $REPO/build/binutils-alloy/ld || exit
+    automake
+  fi
 
   cd $REPO/build || exit
   rm -rf build-binutils-alloy
@@ -74,27 +92,38 @@ if [[ ! -f $SYSROOT/usr/local/bin/i686-alloy-as ]]; then
   
   make -j15
   make DESTDIR="${SYSROOT}" install
+
+  if [[ ! -f $SYSROOT/usr/local/bin/i686-alloy-as ]]; then
+    echo "Couldn't find SYSROOT/usr/local/bin/i686-alloy-as"
+    echo "There must have been an error buiding binutils. Exiting"
+    exit
+  fi
 fi
 
 
-if [[ ! -f $SYSROOT/usr/local/bin/gcc ]]; then
+if [[ ! -f $SYSROOT/usr/local/bin/i686-alloy-gcc ]]; then
   cd $REPO/build
-  # if [[ ! -d "gcc-11.2.0" ]]; then
-  #   if [[ ! -f gcc-11.2.0.tar.xz ]]; then
-  #     curl http://gnu.mirrors.hoobly.com/gcc/gcc-11.2.0/gcc-11.2.0.tar.xz -o gcc-11.2.0.tar.xz
-  #   fi
 
-  #   tar xf gcc-11.2.0.tar.xz
-  # fi
+  if [[ ! -d "gcc-alloy" ]]; then
+    if [[ ! -d $GCC_VERSION ]]; then
+      if [[ ! -f "$GCC_VERSION.tar.xz" ]]; then
+        curl "http://gnu.mirrors.hoobly.com/gcc/$GCC_VERSION/$GCC_VERSION.tar.xz" -o "$GCC_VERSION.tar.xz" || exit
+      fi
 
-  # cd $REPO/toolchain/gcc/files
-  # cp -r ./* $REPO/build/gcc-alloy
+      tar xf "$GCC_VERSION.tar.xz" || exit
+    fi
 
-  # cd $REPO/toolchain/gcc/patches
-  # find . -type f -exec patch -u $REPO/build/gcc-alloy/{} -i {} \;
+    cp -r "$GCC_VERSION" gcc-alloy
 
-  # cd $REPO/build/gcc-alloy/libstdc++-v3
-  # autoconf
+    cd $REPO/toolchain/gcc/files
+    cp -r ./* $REPO/build/gcc-alloy
+
+    cd $REPO/toolchain/gcc/patches
+    find . -type f -exec patch -u $REPO/build/gcc-alloy/{} -i {} \;
+
+    cd $REPO/build/gcc-alloy/libstdc++-v3
+    autoconf
+  fi
 
   cd $REPO/build
   rm -rf build-gcc-alloy
@@ -108,6 +137,14 @@ if [[ ! -f $SYSROOT/usr/local/bin/gcc ]]; then
 
   make DESTDIR="${SYSROOT}" install-gcc
   make DESTDIR="${SYSROOT}" install-target-libgcc
+
+  if [[ ! -f $SYSROOT/usr/local/bin/i686-alloy-gcc ]]; then
+    echo "*** WARNING: Couldn't find i686-alloy-gcc in SYSROOT - there may have been an issue"
+  fi
+
+  if [[ ! -f "$SYSROOT/usr/local/lib/gcc/i686-alloy/$GCC_VERSION/libgcc.a" ]]; then
+    echo "*** WARNING: Couldn't find libgcc.a - there may have been an issue"
+  fi
 fi
 
 cd $REPO

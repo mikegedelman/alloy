@@ -1,6 +1,7 @@
 #!/bin/bash
 
 REPO=$(pwd)
+mkdir -p build
 cd build || exit
 
 TOOLS_PREFIX="$REPO/build/newlib-tools"
@@ -46,15 +47,17 @@ if [[ ! -d $REPO/build/newlib-alloy ]]; then
 
   cp -r newlib-2.5.0 newlib-alloy
   NEWLIB_ALLOY=$REPO/build/newlib-alloy
-  cd ../toolchain/newlib/patches || exit
+  cd $REPO/toolchain/newlib/patches || exit
   find . -type f -exec patch -u $NEWLIB_ALLOY/{} -i {} \;
 
-  cd ../files || exit
-  cp -r newlib ../../../build/newlib-alloy/
-  cd ../../../build/newlib-alloy/newlib/libc/sys/alloy || (echo "error copying alloy libc sys folder"; exit)
-  pushd $NEWLIB_ALLOY/newlib/libc/sys || exit
+  cd $REPO/toolchain/newlib/files || exit
+  cp -r ./* $REPO/build/newlib-alloy/
+
+  cd $REPO/build/newlib-alloy/newlib/libc/sys || exit
   autoconf
-  popd
+
+  cd $REPO/build/newlib-alloy/newlib/libc/sys/alloy || (echo "error copying alloy libc sys folder"; exit)
+  autoreconf
 
   cd $REPO/build || exit
 else
@@ -87,5 +90,13 @@ fi
 make -j15 all
 make DESTDIR="$SYSROOT" install
 cp -r $SYSROOT/usr/i686-alloy/* $SYSROOT/usr
+
+if [[ ! -f $SYSROOT/usr/lib/crt0.o ]]; then
+  echo "*** WARNING: Couldn't find /usr/lib/crt0.o in SYSROOT."
+fi
+
+if [[ ! -f $SYSROOT/usr/lib/libc.a ]]; then
+  echo "*** WARNING: Couldn't find /usr/lib/libc.a in SYSROOT."
+fi
 
 cd $REPO
