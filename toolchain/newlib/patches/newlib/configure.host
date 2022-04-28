@@ -1,0 +1,12 @@
+--- /home/mike/code/cos/build/newlib-2.5.0/newlib/configure.host	2016-12-22 19:33:54.000000000 -0700
++++ /home/mike/code/cos/toolchain/newlib-alloy/newlib/configure.host	2022-04-27 11:12:03.054626508 -0600
+@@ -376,6 +376,9 @@
+ # THIS TABLE IS ALPHA SORTED.  KEEP IT THAT WAY.
+ 
+ case "${host}" in
++  i[3-7]86-*-alloy*)
++    sys_dir=alloy
++    ;;
+   *-*-cygwin*)
+ 	posix_dir=posix
+ 	stdio64_dir=stdio64

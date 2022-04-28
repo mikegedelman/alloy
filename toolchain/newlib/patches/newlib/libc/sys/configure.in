@@ -1,0 +1,10 @@
+--- /home/mike/code/cos/build/newlib-2.5.0/newlib/libc/sys/configure.in	2016-12-22 19:33:54.000000000 -0700
++++ /home/mike/code/cos/toolchain/newlib-alloy/newlib/libc/sys/configure.in	2022-04-27 11:12:03.146633682 -0600
+@@ -49,6 +49,7 @@
+ 	tirtos) AC_CONFIG_SUBDIRS(tirtos) ;;
+ 	w65) AC_CONFIG_SUBDIRS(w65) ;;
+ 	z8ksim) AC_CONFIG_SUBDIRS(z8ksim) ;;
++	alloy) AC_CONFIG_SUBDIRS(alloy) ;;
+   esac;
+ fi
+ 

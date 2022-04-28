@@ -1,9 +1,4 @@
-#include <kernel/fs/fat.h>
-#include <kernel/drivers/ata.h>
-#include <kernel/mem/heap.h>
-#include <kernel/stdio.h>
-#include <kernel/string.h>
-#include <kernel/math.h>
+#include <kernel/all.h>
 
 Fat16Fs fat16_init(size_t start_lba) {
     uint8_t buf[512];
@@ -49,17 +44,25 @@ size_t fat16_read_dir(Fat16Fs *fs, FatDirectoryEntry *entries_buf) {
 /// TODO: this slams 100K of memory every file read by loading the entire FAT... maybe don't
 ///   do that?
 /// TODO: detect loops
-size_t get_cluster_chain(Fat16Fs *fs, uint16_t first_cluster, uint16_t *buf) {
+size_t  get_cluster_chain(Fat16Fs *fs, uint16_t first_cluster, uint16_t *buf) {
     size_t fat_buf_size = fs->bootrec.sectors_per_fat * 512;
     uint16_t *fat_buf = heap_alloc(fat_buf_size);
     ata_read(&ata1, ATA_MASTER, fs->first_fat_offset, fat_buf_size, fat_buf);
 
     uint16_t next_cluster = first_cluster;
     int cur_buf_pos = 0;
-    while (next_cluster < 0xFFF8) {
+    for (int i = 0; i <= fat_buf_size; i++) {
         buf[cur_buf_pos] = next_cluster;
         next_cluster = fat_buf[next_cluster];
         cur_buf_pos += 1;
+
+        if (next_cluster >= 0xFFF8) {
+            break;
+        }
+
+        if (i == fat_buf_size) {
+            printf("warning: reached fat_buf_size when reading clusters\n");
+        }
     }
 
     return cur_buf_pos + 1;
@@ -112,7 +115,8 @@ FatFile *fat_open(Fat16Fs *fs, char *target_filename) {
 
 size_t fat_read(FatFile *f, uint8_t *buf) {
     size_t bytes_per_cluster = f->fs.bootrec.sectors_per_cluster * 512;
-    uint16_t cluster_chain[64];
+    uint16_t *cluster_chain = heap_alloc(65536);
+
     size_t num_clusters = get_cluster_chain(&f->fs, f->first_cluster, cluster_chain);
 
     size_t bytes_read = 0;

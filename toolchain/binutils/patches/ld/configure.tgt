@@ -1,0 +1,18 @@
+--- /home/mike/code/cos/build/binutils-2.38/ld/configure.tgt	2022-01-22 07:19:36.000000000 -0700
++++ /home/mike/code/cos/build/binutils-alloy/ld/configure.tgt	2022-04-27 15:18:57.114754770 -0600
+@@ -43,6 +43,15 @@
+ # Please try to keep this table more or less in alphabetic order - it
+ # makes it much easier to lookup a specific archictecture.
+ case "${targ}" in
++i[3-7]86-*-alloy*)
++			targ_emul=elf_i386_alloy
++			targ_extra_emuls=elf_i386
++			targ64_extra_emuls="elf_x86_64_alloy elf_x86_64"
++			;;
++x86_64-*-alloy*)
++			targ_emul=elf_x86_64_alloy
++			targ_extra_emuls="elf_i386_alloy elf_x86_64 elf_i386"
++			;;
+ aarch64_be-*-elf)	targ_emul=aarch64elfb
+ 			targ_extra_emuls="aarch64elf aarch64elf32 aarch64elf32b armelfb armelf"
+ 			;;

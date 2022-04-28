@@ -1,0 +1,17 @@
+--- /home/mike/code/cos/build/gcc-11.2.0/libgcc/config.host	2021-07-28 00:55:08.752307785 -0600
++++ /home/mike/code/cos/build/gcc-alloy/libgcc/config.host	2022-04-27 16:23:14.190588635 -0600
+@@ -356,6 +356,14 @@
+ esac
+ 
+ case ${host} in
++i[34567]86-*-alloy*)
++	extra_parts="$extra_parts crti.o crtbegin.o crtend.o crtn.o"
++	tmake_file="$tmake_file i386/t-crtstuff t-crtstuff-pic t-libgcc-pic"
++	;;
++x86_64-*-alloy*)
++	extra_parts="$extra_parts crti.o crtbegin.o crtend.o crtn.o"
++	tmake_file="$tmake_file i386/t-crtstuff t-crtstuff-pic t-libgcc-pic"
++	;;
+ aarch64*-*-elf | aarch64*-*-rtems*)
+ 	extra_parts="$extra_parts crtbegin.o crtend.o crti.o crtn.o"
+ 	extra_parts="$extra_parts crtfastmath.o"

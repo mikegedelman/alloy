@@ -11,3 +11,5 @@ bochsout.txt
 *.dat
 serial.raw
 isodir/
+alloy/
+

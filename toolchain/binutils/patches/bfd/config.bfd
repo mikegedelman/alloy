@@ -1,0 +1,22 @@
+--- /home/mike/code/cos/build/binutils-2.38/bfd/config.bfd	2022-01-22 05:14:07.000000000 -0700
++++ /home/mike/code/cos/build/binutils-alloy/bfd/config.bfd	2022-04-27 15:17:34.049938176 -0600
+@@ -240,6 +240,19 @@
+ 
+ case "${targ}" in
+ # START OF targmatch.h
++    i[3-7]86-*-alloy*)
++    targ_defvec=i386_elf32_vec
++    targ_selvecs=
++    targ64_selvecs=x86_64_elf64_vec
++    ;;
++#ifdef BFD64
++  x86_64-*-alloy*)
++    targ_defvec=x86_64_elf64_vec
++    targ_selvecs=i386_elf32_vec
++    want64=true
++    ;;
++#endif
++
+ #ifdef BFD64
+   aarch64-*-darwin*)
+     targ_defvec=aarch64_mach_o_vec

@@ -1,6 +1,5 @@
-#include <std/stdio.h>
-
+#include <stdio.h>
 
 void main() {
-    print("Hello from userspace");
+    puts("Hello from userspace\n");
 }

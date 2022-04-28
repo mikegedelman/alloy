@@ -1,0 +1,11 @@
+--- /home/mike/code/cos/build/newlib-2.5.0/config.sub	2016-12-22 19:33:54.000000000 -0700
++++ /home/mike/code/cos/toolchain/newlib-alloy/config.sub	2022-04-27 11:12:02.954618713 -0600
+@@ -1399,7 +1399,7 @@
+ 	      | -morphos* | -superux* | -rtmk* | -rtmk-nova* | -windiss* \
+ 	      | -powermax* | -dnix* | -nx6 | -nx7 | -sei* | -dragonfly* \
+ 	      | -skyos* | -haiku* | -rdos* | -toppers* | -drops* | -es* \
+-	      | -onefs* | -tirtos* | -phoenix*)
++	      | -onefs* | -tirtos* | -phoenix* | -alloy* )
+ 	# Remember, each alternative MUST END IN *, to match a version number.
+ 		;;
+ 	-qnx*)

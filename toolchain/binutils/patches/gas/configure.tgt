@@ -1,0 +1,10 @@
+--- /home/mike/code/cos/build/binutils-2.38/gas/configure.tgt	2022-01-22 05:14:08.000000000 -0700
++++ /home/mike/code/cos/build/binutils-alloy/gas/configure.tgt	2022-04-27 15:18:01.974219853 -0600
+@@ -125,6 +125,7 @@
+ generic_target=${cpu_type}-$vendor-$os
+ # Note: This table is alpha-sorted, please try to keep it that way.
+ case ${generic_target} in
++  i386-*-alloy*)        fmt=elf;;
+   aarch64*-*-elf*)			fmt=elf;;
+   aarch64*-*-fuchsia*)			fmt=elf;;
+   aarch64*-*-haiku*)			fmt=elf em=haiku ;;

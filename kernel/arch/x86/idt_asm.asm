@@ -2,12 +2,27 @@ bits 32
 
 section .text
 
+global write
+write:
+    push ebp
+    mov ebp, esp
+    push dword [ebp + 16]
+    push dword [ebp + 12]
+    push dword [ebp + 8]
+    mov eax, 18
+    int 80h
+    leave
+    ret
+
 extern _syscall
 global int128
 int128:
     push ebp
     mov ebp, esp
-    push ebx
+    push dword [ebp + 28]
+    push dword [ebp + 24]
+    push dword [ebp + 20]
+    push dword [ebp + 16]
     push eax
     call _syscall
     leave

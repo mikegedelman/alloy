@@ -1,0 +1,28 @@
+--- /home/mike/code/cos/build/gcc-11.2.0/gcc/config.gcc	2021-07-28 00:55:07.000283339 -0600
++++ /home/mike/code/cos/build/gcc-alloy/gcc/config.gcc	2022-04-27 15:52:17.572459272 -0600
+@@ -686,6 +686,12 @@
+ 
+ # Common parts for widely ported systems.
+ case ${target} in
++*-*-alloy*)
++  gas=yes
++  gnu_ld=yes
++  default_use_cxa_atexit=yes
++  use_gcc_stdint=provide
++  ;;
+ *-*-darwin*)
+   tmake_file="t-darwin "
+   tm_file="${tm_file} darwin.h"
+@@ -1084,6 +1090,12 @@
+ esac
+ 
+ case ${target} in
++i[34567]86-*-alloy*)
++    tm_file="${tm_file} i386/unix.h i386/att.h dbxelf.h elfos.h glibc-stdint.h i386/i386elf.h alloy.h"
++    ;;
++x86_64-*-alloy*)
++    tm_file="${tm_file} i386/unix.h i386/att.h dbxelf.h elfos.h glibc-stdint.h i386/i386elf.h i386/x86-64.h alloy.h"
++    ;;
+ aarch64*-*-elf | aarch64*-*-fuchsia* | aarch64*-*-rtems*)
+ 	tm_file="${tm_file} dbxelf.h elfos.h newlib-stdint.h"
+ 	tm_file="${tm_file} aarch64/aarch64-elf.h aarch64/aarch64-errata.h aarch64/aarch64-elf-raw.h"

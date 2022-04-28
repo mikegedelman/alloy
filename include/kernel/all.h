@@ -17,6 +17,8 @@
 #include <kernel/interrupts.h>
 #include <kernel/cpu.h>
 #include <kernel/multiboot.h>
+#include <kernel/util.h>
+#include <kernel/math.h>
 
 // Memory Management
 #include <kernel/mem/physical.h>
