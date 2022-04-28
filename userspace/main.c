@@ -1,5 +1,9 @@
 #include <stdio.h>
 
 void main() {
-    puts("Hello from userspace\n");
+    int fd = open("alloy.txt", "r");
+    if (fd < 0) {
+        printf("Unable to open alloy.txt\n");
+        exit(-1);
+    }
 }
