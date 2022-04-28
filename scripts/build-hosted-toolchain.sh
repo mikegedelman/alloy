@@ -2,6 +2,17 @@
 
 # sudo apt install m4 flex bison
 
+CPU_CORES=1
+if [[ $OSTYPE == 'darwin'* ]]; then
+  CPU_CORES=$(sysctl -n hw.logicalcpu)
+elif [[ $OSTYPE == 'linux'* ]]; then
+  CPU_CORES=$(nproc --all)
+fi
+
+
+echo "Detected $CPU_CORES CPU core(s)"
+sleep 1
+
 REPO=$(pwd)
 SYSROOT=$REPO/alloy
 PREFIX="$HOME/opt/cross"

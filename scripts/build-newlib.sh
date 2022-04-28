@@ -4,6 +4,16 @@ REPO=$(pwd)
 mkdir -p build
 cd build || exit
 
+CPU_CORES=1
+if [[ $OSTYPE == 'darwin'* ]]; then
+  CPU_CORES=$(sysctl -n hw.logicalcpu)
+elif [[ $OSTYPE == 'linux'* ]]; then
+  CPU_CORES=$(nproc --all)
+fi
+
+echo "Detected $CPU_CORES CPU core(s)"
+sleep 1
+
 TOOLS_PREFIX="$REPO/build/newlib-tools"
 mkdir -p $TOOLS_PREFIX
 
@@ -87,7 +97,7 @@ else
   cd $REPO/build/newlib || exit
 fi
 
-make -j15 all
+make -j$CPU_CORES all
 make DESTDIR="$SYSROOT" install
 cp -r $SYSROOT/usr/i686-alloy/* $SYSROOT/usr
 
