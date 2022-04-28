@@ -1,5 +1,8 @@
 #!/bin/bash
 
+AUTOCONF_VERSION="2.65"
+AUTOMAKE_VERSION="1.11"
+
 REPO=$(pwd)
 mkdir -p build
 cd build || exit
@@ -19,14 +22,30 @@ mkdir -p $TOOLS_PREFIX
 
 export PATH="$TOOLS_PREFIX/bin:$PATH"
 
+if [[ ! $(which i686-alloy-ar) ]]; then
+  cd $HOME/opt/cross/bin || (echo "no $HOME/opt/cross"; exit)
+  ln i686-elf-ar i686-alloy-ar;
+  ln i686-elf-as i686-alloy-as;
+  ln i686-elf-gcc i686-alloy-gcc;
+  ln i686-elf-gcc i686-alloy-cc;
+  ln i686-elf-ranlib i686-alloy-ranlib;
+
+  if [[ ! $(which i686-alloy-ar) ]]; then
+    echo "Unable to properly copy i686-elf-* files to i686-alloy-* files. Exiting."
+    exit
+  fi
+
+  cd $REPO/build || exit
+fi
+
 if [[ ! -f $TOOLS_PREFIX/bin/autoconf ]]; then
 
-  curl https://ftp.gnu.org/gnu/autoconf/autoconf-2.65.tar.gz -o autoconf-2.65.tar.gz
-  tar xf autoconf-2.65.tar.gz
+  curl https://ftp.gnu.org/gnu/autoconf/autoconf-$AUTOCONF_VERSION.tar.gz -o autoconf-$AUTOCONF_VERSION.tar.gz
+  tar xf autoconf-$AUTOCONF_VERSION.tar.gz
   rm -rf autoconf
   mkdir autoconf
   cd autoconf || exit
-  ../autoconf-2.65/configure --prefix="$TOOLS_PREFIX"
+  ../autoconf-$AUTOCONF_VERSION/configure --prefix="$TOOLS_PREFIX"
   make && make install
   cd $REPO/build || exit
 else
@@ -34,12 +53,12 @@ else
 fi
 
 if [[ ! -f $TOOLS_PREFIX/bin/automake ]]; then
-  curl https://ftp.gnu.org/gnu/automake/automake-1.11.tar.gz -o automake-1.11.tar.gz
-  tar xf automake-1.11.tar.gz
+  curl https://ftp.gnu.org/gnu/automake/automake-$AUTOMAKE_VERSION.tar.gz -o automake-$AUTOMAKE_VERSION.tar.gz
+  tar xf automake-$AUTOMAKE_VERSION.tar.gz
   rm -rf automake
   mkdir automake
   cd automake || exit
-  ../automake-1.11/configure --prefix="$TOOLS_PREFIX"
+  ../automake-$AUTOMAKE_VERSION/configure --prefix="$TOOLS_PREFIX"
   make && make install
   cd $REPO/build || exit
 else
@@ -63,30 +82,27 @@ if [[ ! -d $REPO/build/newlib-alloy ]]; then
   cd $REPO/toolchain/newlib/files || exit
   cp -r ./* $REPO/build/newlib-alloy/
 
-  cd $REPO/build/newlib-alloy/newlib/libc/sys || exit
-  autoconf
+
+exit
 
   cd $REPO/build/newlib-alloy/newlib/libc/sys/alloy || (echo "error copying alloy libc sys folder"; exit)
-  autoreconf
+  autoreconf || exit
+
+  cd $REPO/build/newlib-alloy/newlib/libc/sys || exit
+  autoreconf || exit
+
 
   cd $REPO/build || exit
 else
   echo "Found patched newlib at $REPO/build/newlib-alloy"
 fi
 
+echo $PATH
+
 SYSROOT=$REPO/alloy
 
 mkdir -p $SYSROOT
 
-if [[ ! $(which i686-alloy-ar) ]]; then
-  cd $HOME/opt/cross || (echo "no $HOME/opt/cross"; exit)
-  ln i686-elf-ar i686-alloy-ar;
-  ln i686-elf-as i686-alloy-as;
-  ln i686-elf-gcc i686-alloy-gcc;
-  ln i686-elf-gcc i686-alloy-cc;
-  ln i686-elf-ranlib i686-alloy-ranlib;
-  cd $REPO/build || exit
-fi
 
 if [[ ! -d $REPO/build/newlib ]]; then
   cd $REPO/build || exit

@@ -1,4 +1,4 @@
-#!ybin/bash
+#!/bin/bash
 
 dd if=/dev/zero of=hdd.img bs=512 count=204800
 DEV=$(sudo losetup -Pf hdd.img --show)
