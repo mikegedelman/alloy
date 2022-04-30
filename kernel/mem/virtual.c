@@ -130,7 +130,7 @@ void virtualmem_init() {
     end_of_kernel_virtual = ((uint32_t)&kernel_end & 0xFFC00000) + _4MB;
 
     size_t kernel_pagedir_num = (BASE_VIRTUAL_ADDRESS >> 22);
-    uint32_t flags = PAGEDIR_PRESENT | PAGEDIR_WRITE | PAGEDIR__4M_PAGE;
+    uint32_t flags = PAGEDIR_PRESENT | PAGEDIR_WRITE | PAGEDIR__4M_PAGE | PAGEDIR_USER;
     page_directory[kernel_pagedir_num] = page_directory_entry(0, flags);
 
     // let start = (&kernel_start as *const u32) as u32;

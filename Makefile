@@ -11,7 +11,7 @@ DOCKER := docker run -v $(shell pwd):/work -w /work mikegedelman/alloy:master
 
 
 CC := i686-alloy-gcc
-CFLAGS := -I./include -std=gnu11 -ffreestanding -O -Wall -Wextra -g
+CFLAGS := -I./include -std=gnu11 -ffreestanding -O -Wall -Wextra -Wpedantic -g
 
 all: os-multiboot.bin
 

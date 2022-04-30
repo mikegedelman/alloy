@@ -57,9 +57,9 @@ void isr_handler(uint32_t x, uint32_t info) {
     // term_putchar('?');)
     // char scancode;
 
-    // if (x != 0x20) {
-    //     printf("**INTERRUPT %x \n", x);
-    // }
+    if (x != 0x20) {
+        printf("**INTERRUPT %x \n", x);
+    }
 
     if (x < 32) {
         printf("exception %d error code: %x", x, info);

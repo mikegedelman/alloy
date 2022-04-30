@@ -2,17 +2,38 @@ bits 32
 
 section .text
 
-global write
-write:
-    push ebp
-    mov ebp, esp
-    push dword [ebp + 16]
-    push dword [ebp + 12]
-    push dword [ebp + 8]
-    mov eax, 18
-    int 80h
-    leave
+global flush_tss
+flush_tss:
+    mov ax, (5 * 8) | 0 ; fifth 8-byte selector, symbolically OR-ed with 0 to set the RPL (requested privilege level).
+    ltr ax
     ret
+
+
+test_user_function:
+   mov eax, 2
+   mov ebx, 3
+   mov ecx, 4
+   mov edx, 5
+   int 0x80
+
+
+global jump_usermode
+jump_usermode:
+    mov ax, (4 * 8) | 3 ; ring 3 data with bottom 2 bits set for ring 3
+    mov ds, ax
+    mov es, ax 
+    mov fs, ax 
+    mov gs, ax ; SS is handled by iret
+ 
+    ; set up the stack frame iret expects
+    mov eax, esp
+    push (4 * 8) | 3 ; data selector
+    push eax ; current esp
+    pushf ; eflags
+    push (3 * 8) | 3 ; code selector (ring 3 code with bottom 2 bits set for ring 3)
+    push test_user_function ; instruction address to return to
+    iret
+
 
 extern _syscall
 global int128

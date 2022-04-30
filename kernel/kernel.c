@@ -26,10 +26,6 @@ void setup_memory(MultibootInfo *multiboot_info, uint32_t magic) {
     heap_init();
 }
 
-//void tcp_listener(uint8_t *data, size_t _data_len) {
-//    printf("%s", (char *) data);
-//}
-
 
 
 void print_dir_entry(FatDirectoryEntry *entry) {
@@ -39,13 +35,23 @@ void print_dir_entry(FatDirectoryEntry *entry) {
 }
 
 
+// void test_user_function() {
+//     printf("hi from test_user_function");
+// }
+
+extern void jump_usermode();
+
 /** Stuff to do after init. */
 void kernel_tasks() {
     printf("Early init complete.\n");
+    uint32_t esp;
+    asm volatile("mov %%esp, %0" : "=r"(esp));
+    save_kernel_stack(esp);
+    jump_usermode();
 
-    uint8_t buf[512];
+     uint8_t buf[512];
      int bytes_read = ata_read(&ata1, ATA_MASTER, 0, 512, buf);
- printf("%d bytes read from ata1.\n", bytes_read);
+     printf("%d bytes read from ata1.\n", bytes_read);
      MasterBootRecord *mbr = (MasterBootRecord*) buf;
      printf("partition type %x\n", mbr->partition_table[0].partition_type);
      printf("partition lba start %x\n", mbr->partition_table[0].lba_partition_start);
@@ -73,6 +79,7 @@ void kernel_tasks() {
 
 }
 
+
 void kernel_main(MultibootInfo *multiboot_info, uint32_t magic) {
     early_init();
     setup_memory(multiboot_info, magic);
@@ -96,6 +103,12 @@ void kernel_main(MultibootInfo *multiboot_info, uint32_t magic) {
 
 
 // Networking stuff
+//
+//
+//void tcp_listener(uint8_t *data, size_t _data_len) {
+//    printf("%s", (char *) data);
+//}
+//
 //    pci_scan();
 //
 //    rtl_8139_init();

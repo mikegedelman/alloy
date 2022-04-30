@@ -6,4 +6,5 @@ qemu-system-i386 -kernel os-multiboot.bin \
 	-device rtl8139,netdev=f1 \
 	-object filter-dump,id=ff1,netdev=f1,file=dump.dat \
 	-device isa-debug-exit,iobase=0xf4,iosize=0x04 \
-	-display none $@
+	-display none $@ \
+	--no-reboot

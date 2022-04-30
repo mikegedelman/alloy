@@ -26,6 +26,9 @@ void idt_set_descriptor(int vector, void *isr) { // }, uint8_t flags) {
     descriptor->kernel_cs      = 0x08; // this value can be whatever offset your kernel code selector is in your GDT
     descriptor->reserved       = 0;
     descriptor->attributes     = 0x8E;
+    if (vector == 0x80) {
+	    descriptor->attributes |= (3 << 5); // set DPL to 3 for 0x80 - allow int 0x80 in userspace
+    }
     descriptor->isr_high       = (uint32_t)isr >> 16;
 }
 

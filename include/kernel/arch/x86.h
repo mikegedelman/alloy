@@ -4,4 +4,6 @@
 void init_gdt();
 void init_idt();
 
+void save_kernel_stack(uint32_t esp);
+
 #endif
