@@ -1,10 +1,13 @@
 #!/bin/bash
 
 # sudo apt install m4 flex bison
+# brew install isl libmpc mpfr pcre2
 
 CPU_CORES=1
 if [[ $OSTYPE == 'darwin'* ]]; then
   CPU_CORES=$(sysctl -n hw.logicalcpu)
+  export CFLAGS="$CFLAGS -I/usr/local/include"
+  export LDFLAGS="$LDFLAGS -L/usr/local/lib"
 elif [[ $OSTYPE == 'linux'* ]]; then
   CPU_CORES=$(nproc --all)
 fi
@@ -17,10 +20,10 @@ REPO=$(pwd)
 SYSROOT=$REPO/alloy
 PREFIX="$HOME/opt/cross"
 
-AUTOCONF_VERSION="autoconf-2.69"
-AUTOMAKE_VERSION="automake-1.15.1"
-BINUTILS_VERSION="binutils-2.38"
-GCC_VERSION="gcc-11.2.0"
+AUTOCONF_VERSION="2.69"
+AUTOMAKE_VERSION="1.15.1"
+BINUTILS_VERSION="2.38"
+GCC_VERSION="11.2.0"
 
 cd build || (echo "missing build dir"; exit)
 
@@ -30,19 +33,19 @@ export PATH="$TOOLS_PREFIX/bin:$PATH"
 if [[ ! -f $TOOLS_PREFIX/bin/autoconf ]]; then
   mkdir -p $TOOLS_PREFIX
 
-  if [[ ! -d $AUTOCONF_VERSION ]]; then
-    if [[ ! -f "$AUTOCONF_VERSION.tar.xz" ]]; then
-      curl https://ftp.gnu.org/gnu/autoconf/$AUTOCONF_VERSION.tar.xz -o "$AUTOCONF_VERSION.tar.xz"
+  if [[ ! -d autoconf-$AUTOCONF_VERSION ]]; then
+    if [[ ! -f "autoconf-$AUTOCONF_VERSION.tar.xz" ]]; then
+      curl https://ftp.gnu.org/gnu/autoconf/autoconf-$AUTOCONF_VERSION.tar.xz -o "autoconf-$AUTOCONF_VERSION.tar.xz"
     fi
 
-    tar xf $AUTOCONF_VERSION.tar.xz
+    tar xf autoconf-$AUTOCONF_VERSION.tar.xz
   fi
 
   rm -rf autoconf
   mkdir autoconf
   cd autoconf || exit
-  ../$AUTOCONF_VERSION/configure --prefix="$TOOLS_PREFIX"
-  make -j15
+  ../autoconf-$AUTOCONF_VERSION/configure --prefix="$TOOLS_PREFIX"
+  make -j$CPU_CORES
   make install
   cd $REPO/build || exit
 fi
@@ -50,12 +53,12 @@ fi
 if [[ ! -f $TOOLS_PREFIX/bin/automake ]]; then
   cd $REPO/build || exit
 
-  if [[ ! -d $AUTOMAKE_VERSION ]]; then
-    if [[ ! -f "$AUTOMAKE_VERSION.tar.xz" ]]; then
-      curl "https://ftp.gnu.org/gnu/automake/$AUTOMAKE_VERSION.tar.xz" -o "$AUTOMAKE_VERSION.tar.xz"
+  if [[ ! -d automake-$AUTOMAKE_VERSION ]]; then
+    if [[ ! -f "automake-$AUTOMAKE_VERSION.tar.xz" ]]; then
+      curl "https://ftp.gnu.org/gnu/automake/automake-$AUTOMAKE_VERSION.tar.xz" -o "automake-$AUTOMAKE_VERSION.tar.xz"
     fi
 
-    tar xf $AUTOMAKE_VERSION.tar.xz || exit
+    tar xf automake-$AUTOMAKE_VERSION.tar.xz || exit
   fi
 
   echo $TOOLS_PREFIX
@@ -64,7 +67,7 @@ if [[ ! -f $TOOLS_PREFIX/bin/automake ]]; then
   mkdir automake
   cd automake || exit
   ../$AUTOMAKE_VERSION/configure --prefix="$TOOLS_PREFIX"
-  make -j15
+  make -j$CPU_CORES
   make install
   cd $REPO/build || exit
 fi
@@ -75,15 +78,15 @@ if [[ ! -f $SYSROOT/usr/local/bin/i686-alloy-as ]]; then
   cd $REPO/build || exit
 
   if [[ ! -d $REPO/build/binutils-alloy ]]; then
-    if [[ ! -d "$REPO/build/$BINUTILS_VERSION" ]]; then
-      if [[ ! -f  "$REPO/build/$BINUTILS_VERSION.tar.xz" ]]; then
-        curl "https://ftp.gnu.org/gnu/binutils/$BINUTILS_VERSION.tar.xz" -o "$BINUTILS_VERSION.tar.xz" || exit
+    if [[ ! -d "$REPO/build/binutils-$BINUTILS_VERSION" ]]; then
+      if [[ ! -f  "$REPO/build/binutils-$BINUTILS_VERSION.tar.xz" ]]; then
+        curl "https://ftp.gnu.org/gnu/binutils/binutils-$BINUTILS_VERSION.tar.xz" -o "binutils-$BINUTILS_VERSION.tar.xz" || exit
       fi
 
-      tar xf "$BINUTILS_VERSION.tar.xz"
+      tar xf "binutils-$BINUTILS_VERSION.tar.xz"
     fi
 
-    cp -r "$REPO/build/$BINUTILS_VERSION" $REPO/build/binutils-alloy
+    cp -r "$REPO/build/binutils-$BINUTILS_VERSION" $REPO/build/binutils-alloy
 
     cd $REPO/toolchain/binutils/patches || exit
     find . -type f -exec patch -u $REPO/build/binutils-alloy/{} -i {} \;
@@ -101,7 +104,7 @@ if [[ ! -f $SYSROOT/usr/local/bin/i686-alloy-as ]]; then
   cd build-binutils-alloy || exit
   ../binutils-alloy/configure --with-sysroot="$SYSROOT" --target=i686-alloy --disable-werror
   
-  make -j15
+  make -j$CPU_CORES
   make DESTDIR="${SYSROOT}" install
 
   if [[ ! -f $SYSROOT/usr/local/bin/i686-alloy-as ]]; then
@@ -116,15 +119,15 @@ if [[ ! -f $SYSROOT/usr/local/bin/i686-alloy-gcc ]]; then
   cd $REPO/build
 
   if [[ ! -d "gcc-alloy" ]]; then
-    if [[ ! -d $GCC_VERSION ]]; then
-      if [[ ! -f "$GCC_VERSION.tar.xz" ]]; then
-        curl "http://gnu.mirrors.hoobly.com/gcc/$GCC_VERSION/$GCC_VERSION.tar.xz" -o "$GCC_VERSION.tar.xz" || exit
+    if [[ ! -d gcc-$GCC_VERSION ]]; then
+      if [[ ! -f "gcc-$GCC_VERSION.tar.xz" ]]; then
+        curl "http://gnu.mirrors.hoobly.com/gcc/gcc-$GCC_VERSION/gcc-$GCC_VERSION.tar.xz" -o "gcc-$GCC_VERSION.tar.xz" || exit
       fi
 
-      tar xf "$GCC_VERSION.tar.xz" || exit
+      tar xf "gcc-$GCC_VERSION.tar.xz" || exit
     fi
 
-    cp -r "$GCC_VERSION" gcc-alloy
+    cp -r "gcc-$GCC_VERSION" gcc-alloy
 
     cd $REPO/toolchain/gcc/files
     cp -r ./* $REPO/build/gcc-alloy
@@ -143,8 +146,8 @@ if [[ ! -f $SYSROOT/usr/local/bin/i686-alloy-gcc ]]; then
 
   ../gcc-alloy/configure --target=i686-alloy --with-sysroot="$SYSROOT" --disable-werror \
     --with-newlib --disable-shared --disable-threads --enable-languages=c
-  make -j15 all-gcc
-  make -j15 all-target-libgcc
+  make -j$CPU_CORES all-gcc
+  make -j$CPU_CORES all-target-libgcc
 
   make DESTDIR="${SYSROOT}" install-gcc
   make DESTDIR="${SYSROOT}" install-target-libgcc
