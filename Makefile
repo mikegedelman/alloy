@@ -24,10 +24,6 @@ os-multiboot.bin: $(OBJECTS)
 %.o: %.c
 	$(CC) $(CFLAGS) -o $@ -c $^
 
-# user.elf: userspace/main.c userspace/crt0.S
-# 	i686-elf-gcc -I./include -std=gnu11 -ffreestanding -O -Wall -Wextra userspace/main.c userspace/crt0.S -nostdlib -o user.elf
-
-
 .PHONY: clean run userspace
 
 userspace:

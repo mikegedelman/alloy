@@ -44,32 +44,32 @@ void kernel_tasks() {
     printf("Early init complete.\n");
 
     uint8_t buf[512];
-     int bytes_read = ata_read(&ata1, ATA_MASTER, 0, 512, buf);
- printf("%d bytes read from ata1.\n", bytes_read);
-     MasterBootRecord *mbr = (MasterBootRecord*) buf;
-     printf("partition type %x\n", mbr->partition_table[0].partition_type);
-     printf("partition lba start %x\n", mbr->partition_table[0].lba_partition_start);
+    int bytes_read = ata_read(&ata1, ATA_MASTER, 0, 512, buf);
+    printf("%d bytes read from ata1.\n", bytes_read);
+    MasterBootRecord *mbr = (MasterBootRecord*) buf;
+    printf("partition type %x\n", mbr->partition_table[0].partition_type);
+    printf("partition lba start %x\n", mbr->partition_table[0].lba_partition_start);
 
-     Fat16Fs fat16fs = fat16_init(mbr->partition_table[0].lba_partition_start);
-     printf("root dir lba %x\n", fat16fs.root_dir_offset);
-     FatDirectoryEntry *entries_buf = heap_alloc(sizeof(FatDirectoryEntry) * 256);
-     size_t num_entries = fat16_read_dir(&fat16fs, entries_buf);
-     for (size_t i = 0; i < num_entries; i++) {
-         print_dir_entry(&entries_buf[i]);
-     }
+    Fat16Fs fat16fs = fat16_init(mbr->partition_table[0].lba_partition_start);
+    printf("root dir lba %x\n", fat16fs.root_dir_offset);
+    FatDirectoryEntry *entries_buf = heap_alloc(sizeof(FatDirectoryEntry) * 256);
+    size_t num_entries = fat16_read_dir(&fat16fs, entries_buf);
+    for (size_t i = 0; i < num_entries; i++) {
+        print_dir_entry(&entries_buf[i]);
+    }
 
 
-     FatFile *f = fat_open(&fat16fs, "USER.EXE");
-     if (f == NULL) {
-         printf("Couldn't open USER.EXE.\n");
-         return;
-     }
+    FatFile *f = fat_open(&fat16fs, "USER.EXE");
+    if (f == NULL) {
+        printf("Couldn't open USER.EXE.\n");
+        return;
+    }
 
-     printf("USER.EXE: %d bytes\n", f->size);
-     uint8_t *file_buf = heap_alloc(f->size);
-     fat_read(f, file_buf);
+    printf("USER.EXE: %d bytes\n", f->size);
+    uint8_t *file_buf = heap_alloc(f->size);
+    fat_read(f, file_buf);
 
-     exec((void*) file_buf);
+    exec((void*) file_buf);
 
 }
 
