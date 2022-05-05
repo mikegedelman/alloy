@@ -45,7 +45,8 @@
 #include <kernel/net/tcp.h>
 #include <kernel/net/dhcp.h>
 
-// ELF support
+// Processes
+#include <kernel/proc.h>
 #include <kernel/proc/elf.h>
 
 #endif

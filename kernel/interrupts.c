@@ -1,8 +1,4 @@
-#include <stdint.h>
-#include <kernel/cpu.h>
-#include <kernel/stdio.h>
-#include <kernel/drivers/pic8259.h>
-#include <kernel/drivers/uart16550.h>
+#include <kernel/all.h>
 
 typedef void (*interrupt_handler_fn) (void*);
 
@@ -53,13 +49,15 @@ void send_eoi(uint32_t irq) {
     pic1_eoi();
 }
 
-void isr_handler(uint32_t x, uint32_t info) {
+void isr_handler(uint32_t x, uint32_t info, uint32_t eax, uint32_t ecx, uint32_t edx, uint32_t ebx, uint32_t esp, uint32_t ebp, uint32_t esi, uint32_t edi, uint16_t cs, uint32_t eip)  {
     // term_putchar('?');)
     // char scancode;
 
     // if (x != 0x20) {
     //     printf("**INTERRUPT %x \n", x);
     // }
+
+    // printf("%x %x %x %x %x\n", eax, ebx, ecx, edx, esp);
 
     if (x < 32) {
         printf("exception %d error code: %x", x, info);
@@ -70,10 +68,20 @@ void isr_handler(uint32_t x, uint32_t info) {
         registered_interrupts[x]((void*) info);
     }
 
+    ProcessCPUState state;
     switch (x) {
         case 32:
-            // term_putchar('.');
-            // serial_write(&com1, ".");
+            state.eax = eax;
+            state.ebx = ebx;
+            state.ecx = ecx;
+            state.edx = edx;
+            state.esp = esp;
+            state.ebp = ebp;
+            state.esi = esi;
+            state.edi = edi;
+            state.eip = eip;
+            send_eoi(x);
+            next_process(&state);
             break;
         case 33:
             // scancode = inb(0x60);

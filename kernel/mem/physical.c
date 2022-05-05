@@ -100,22 +100,6 @@ void load_multiboot_mmap(MultibootInfo *mb_info) {
 /**
  * Reserve a frame for use; return its starting address
  * Currently O(n). Not a huge deal but would be a problem if we were in 64-bit space.
- *
-pub fn alloc() -> Option<u32> {
-    let mut pmgr = PMGR.lock();
-    let byte_with_free_frame_idx = match pmgr.bitmap.iter().position(|x| x < &0xFF) {
-        Some(x) => x,
-        None => {
-            return None;
-        }
-    } as u32;
-
-    let byte_with_free_frame = pmgr.bitmap[byte_with_free_frame_idx as usize];
-    let free_bit = first_free_bit(byte_with_free_frame as u8);
-    let frame: u32 = byte_with_free_frame_idx * 8 + free_bit as u32;
-    pmgr.reserve(frame as usize);
-    Some(frame * 0x1000)
-}
 */
 
 /**
@@ -125,27 +109,6 @@ pub fn alloc() -> Option<u32> {
  * 4MB chunk
  */
 AllocResult alloc_contiguous_4mb() {
-    // for _4mb_frame in 0..1023 {
-    //     let mut used = false;
-    //     for idx in _4mb_frame * 128..(_4mb_frame + 1) * 128 {
-    //         if pmgr.bitmap[idx] != 0 {
-    //             used = true;
-    //             break;
-    //         }
-    //     }
-    //     if !used {
-    //         let addr = (_4mb_frame * 1024 * 0x1000) as u32;
-    //         info!(
-    //             "Reserving physical memory range {:#x} - {:#x}",
-    //             addr,
-    //             addr + _4MB
-    //         );
-    //         pmgr.reserve_range(addr, addr + _4MB);
-    //         return Some(addr);
-    //     }
-    // }
-    // None
-
     // Check each 4mb chunk...
     for (int _4mb_frame = 0; _4mb_frame < 1024; _4mb_frame++) {
         bool used = false;

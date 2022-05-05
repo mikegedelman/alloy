@@ -8,63 +8,9 @@
 // #define BASE_VIRTUAL_ADDRESS 0
 #define _4MB (4 * 1024 * 1024)
 
-// lazy_static! {
-//     pub static ref VMGR: Mutex<VirtualManager> = Mutex::new(VirtualManager::new());
-// }
-// lazy_static! {
-//     static ref KERNEL_PAGE_DIRECTORY: Mutex<KernelPageDirectory> =
-//         Mutex::new(KernelPageDirectory{ entries: [0u32; 1024] });
-// }
-
 static uint32_t __attribute__((aligned(4096))) page_directory[1024];
 static uint32_t end_of_kernel_virtual;
 
-// static mut KERNEL_PAGE_DIRECTORY: KernelPageDirectory = KernelPageDirectory {
-//     entries: [0u32; 1024],
-// };
-
-// #[repr(C, align(4096))]
-// struct KernelPageDirectory {
-//     pub entries: [u32; 1024],
-// }
-
-// enum PageDirFlags {
-//         PAGEDIR_PRESENT = 1,
-//         PAGEDIR_WRITE = 1 << 1,
-//         PAGEDIR_USER = 1 << 2,
-//         PAGEDIR_WRITE_THROUGH = 1 << 3,
-//         PAGEDIR_DISABLE_CACHE = 1 << 4,
-//         PAGEDIR_ACCESSED = 1 << 5,
-//         // 6: always 0
-//         PAGEDIR__4M_PAGE = 1 << 7,
-// };
-
-// enum PageFlags {
-//         PAGE_PRESENT = 1,
-//         PAGE_WRITE = 1 << 1,
-//         PAGE_USER = 1 << 2,
-//         PAGE_WRITE_THROUGH = 1 << 3,
-//         PAGE_DISABLE_CACHE = 1 << 4,
-//         PAGE_ACCESSED = 1 << 5,
-//         PAGE_DIRTY = 1 << 6,
-//         // 7: always 0
-//         PAGE_GLOBAL = 1 << 8,
-// };
-
-// pub struct VirtualManager {
-//     pub end_of_kernel_virtual: u32,
-//     page_directory: &'static mut KernelPageDirectory,
-// }
-
-// impl VirtualManager {
-//     pub fn new() -> VirtualManager {
-//         let end_of_kernel_virtual =
-//             unsafe { ((&kernel_end as *const u32) as u32 & 0xFFC00000) + _4MB };
-//         VirtualManager {
-//             end_of_kernel_virtual,
-//             page_directory: unsafe { &mut KERNEL_PAGE_DIRECTORY },
-//         }
-//     }
 
 uint32_t page_directory_entry(uint32_t addr, uint32_t flags) {
     // if (addr % 0x400000) != 0 {
@@ -124,29 +70,58 @@ void virtualmem_free(void *virtual_addr) {
 //     return page_directory - BASE_VIRTUAL_ADDRESS;
 // }
 
+void virtualmem_map(uint32_t physical, uint32_t virtual, uint32_t flags) {
+    size_t pagedir_num = virtual >> 22;
+    page_directory[pagedir_num] = page_directory_entry(physical, flags);
+}
 
 /// Initialize the page directory to be used for kernel code
 void virtualmem_init() {
     end_of_kernel_virtual = ((uint32_t)&kernel_end & 0xFFC00000) + _4MB;
 
-    size_t kernel_pagedir_num = (BASE_VIRTUAL_ADDRESS >> 22);
     uint32_t flags = PAGEDIR_PRESENT | PAGEDIR_WRITE | PAGEDIR__4M_PAGE;
-    page_directory[kernel_pagedir_num] = page_directory_entry(0, flags);
+    virtualmem_map(0, BASE_VIRTUAL_ADDRESS, flags);
 
-    // let start = (&kernel_start as *const u32) as u32;
-    // let end = (&kernel_end as *const u32) as u32;
     uint32_t kernel_size = &kernel_end - &kernel_start;
 
     if (kernel_size > _4MB) {
         uint32_t addtl_pages = (kernel_size + _4MB - 1) / _4MB;
-        // info!("Mapping {} additional pages for the kernel", addtl_pages);
+        // Map additional pages for the kernel
         for (uint32_t i = 0; i < addtl_pages; i++) {
-            page_directory[kernel_pagedir_num + i] = page_directory_entry(_4MB * i, flags);
+            uint32_t offset = _4MB * i;
+            virtualmem_map(0, BASE_VIRTUAL_ADDRESS + offset, flags);
         }
     }
 
     // Reserve the physical frames containing the page directory
     // This must be a *PHYSICAL* address, so we have translate it from virtual.
-    // printf("setting cr3 to %x", (void*) page_directory - BASE_VIRTUAL_ADDRESS);
     set_cr3((void*) page_directory - BASE_VIRTUAL_ADDRESS);
 }
+
+
+// void virtualmem_init() {
+//     end_of_kernel_virtual = ((uint32_t)&kernel_end & 0xFFC00000) + _4MB;
+
+//     size_t kernel_pagedir_num = (BASE_VIRTUAL_ADDRESS >> 22);
+//     uint32_t flags = PAGEDIR_PRESENT | PAGEDIR_WRITE | PAGEDIR__4M_PAGE;
+//     page_directory[kernel_pagedir_num] = page_directory_entry(0, flags);
+
+    
+
+//     // let start = (&kernel_start as *const u32) as u32;
+//     // let end = (&kernel_end as *const u32) as u32;
+//     uint32_t kernel_size = &kernel_end - &kernel_start;
+
+//     if (kernel_size > _4MB) {
+//         uint32_t addtl_pages = (kernel_size + _4MB - 1) / _4MB;
+//         // info!("Mapping {} additional pages for the kernel", addtl_pages);
+//         for (uint32_t i = 0; i < addtl_pages; i++) {
+//             page_directory[kernel_pagedir_num + i] = page_directory_entry(_4MB * i, flags);
+//         }
+//     }
+
+//     // Reserve the physical frames containing the page directory
+//     // This must be a *PHYSICAL* address, so we have translate it from virtual.
+//     // printf("setting cr3 to %x", (void*) page_directory - BASE_VIRTUAL_ADDRESS);
+//     set_cr3((void*) page_directory - BASE_VIRTUAL_ADDRESS);
+// }

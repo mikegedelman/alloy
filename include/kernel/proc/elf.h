@@ -37,6 +37,6 @@ typedef struct __attribute__((__packed__)) {
     uint32_t p_align;
 } Elf32ProgramHeader;
 
-void exec (void *program);
+uint32_t load_elf(uint8_t *buf);
 
 #endif

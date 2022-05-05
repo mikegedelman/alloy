@@ -69,8 +69,8 @@ void kernel_tasks() {
     uint8_t *file_buf = heap_alloc(f->size);
     fat_read(f, file_buf);
 
-    exec((void*) file_buf);
-
+    schedule_process(file_buf);
+    while (1) {}
 }
 
 void kernel_main(MultibootInfo *multiboot_info, uint32_t magic) {

@@ -2,6 +2,36 @@ bits 32
 
 section .text
 
+global restore_process
+restore_process:
+    push ebp
+    mov ebp, esp
+
+    ; set up stack frame iret expects
+    mov esp, [ebp + 24]
+    mov eax, esp
+    push (2 * 8)
+    push eax
+    pushf
+    push (1 * 8)
+    push dword [ebp + 40]
+    mov eax, [ebp + 8]
+    mov ebx, [ebp + 12]
+    mov ecx, [ebp + 16]
+    mov edx, [ebp + 20]
+    ; mov esp, [ebp + 24]
+    mov esi, [ebp + 32]
+    mov edi, [ebp + 36]
+    mov ebp, esp
+    iret
+
+global begin_process
+begin_process:
+    push ebp
+    mov ebp, esp
+    mov esp, [ebp + 12]
+    jmp dword [ebp + 8]
+
 global write
 write:
     push ebp
@@ -35,31 +65,13 @@ extern isr_handler
     ; Commented instrs: we should probably be saving all of these segments and stuff,
     ; but we don't have a userspace right now, so it's ok for a minute
     pusha
-    ; mov ax, ds
-    ; push eax
-    ; mov ax, 0x10
-	; mov ds, ax
-	; mov es, ax
-	; mov fs, ax
-	; mov gs, ax
-
-    mov  ebp, esp
-    ; mov eax, [esp + 4]
-    ; push eax
     push dword [esp + 4]
     push %1
-    ; cld
     call isr_handler
-    add esp, 8
 
-	; pop eax
-	; mov ds, ax
-	; mov es, ax
-	; mov fs, ax
-	; mov gs, ax
+    ; cleanup
+    add esp, 8
 	popa
-	; add esp, 8 ; Cleans up the pushed error code and pushed ISR number
-	; cli
 	iret ; pops 5 things at once: CS, EIP, EFLAGS, SS, and ESP
 .end:
 %endmacro

@@ -13,7 +13,7 @@ DOCKER := docker run -v $(shell pwd):/work -w /work mikegedelman/alloy:master
 CC := i686-alloy-gcc
 CFLAGS := -I./include -std=gnu11 -ffreestanding -O -Wall -Wextra -g
 
-all: os-multiboot.bin
+all: os-multiboot.bin userspace
 
 os-multiboot.bin: $(OBJECTS)
 	$(CC) -T multiboot-hh.ld -o $@ -ffreestanding -O -nostdlib $(OBJECTS) -lgcc

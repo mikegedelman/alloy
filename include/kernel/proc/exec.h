@@ -1,6 +1,8 @@
 #ifndef _KERNEL_EXEC_H
 #define _KERNEL_EXEC_H
 
-void exec(uint8_t *buf);
+#include <stdint.h>
+
+// uint32_t load_elf(uint8_t *buf);
 
 #endif

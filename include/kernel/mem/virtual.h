@@ -30,6 +30,8 @@ void virtualmem_init();
 void *virtualmem_alloc_page();
 void virtualmem_free(void *virtual_addr);
 void alloc_4mb(uint32_t virtual_addr, uint32_t physical_addr, uint32_t flags);
+void virtualmem_map(uint32_t physical, uint32_t virtual, uint32_t flags);
+void virtualmem_map_kernel(uint32_t *page_directory);
 
 extern void *kernel_start;
 extern void *kernel_end;

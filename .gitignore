@@ -5,6 +5,7 @@
 *.bin
 *.elf
 .idea/
+.vscode/
 stdout
 build/
 bochsout.txt
