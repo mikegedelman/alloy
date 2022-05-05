@@ -88,6 +88,9 @@ void next_process(ProcessCPUState *cpu_state) {
     // new_proc->cpu_state.esi = 7;
     // new_proc->cpu_state.edi = 8;
     // new_proc->cpu_state.eip = 9;
+    uint32_t esp;
+    asm volatile("mov %%esp, %0" : "=r"(esp));
+    save_kernel_stack(esp);
     restore_process(
         new_proc->cpu_state.eax,
         new_proc->cpu_state.ebx,

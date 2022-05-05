@@ -28,7 +28,6 @@ os-multiboot.bin: $(OBJECTS)
 
 userspace:
 	$(MAKE) -C $@
-	scripts/update-hdd.sh
 
 run: os-multiboot.bin
 	qemu-system-i386 -kernel os-multiboot.bin -serial stdio -hda hdd.img

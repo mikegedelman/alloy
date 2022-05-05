@@ -48,7 +48,29 @@ void send_eoi(uint32_t irq) {
     pic1_eoi();
 }
 
-void isr_handler(uint32_t x, uint32_t info, uint32_t eax, uint32_t ecx, uint32_t edx, uint32_t ebx, uint32_t esp, uint32_t ebp, uint32_t esi, uint32_t edi, uint16_t cs, uint32_t eip)  {
+uint32_t isr_handler(
+    uint32_t x,
+    uint32_t info,
+    uint32_t syscall1,
+    uint32_t syscall2,
+    uint32_t syscall3,
+    uint32_t syscall4,
+    uint32_t edi,
+    uint32_t esi,
+    uint32_t ebp,
+    uint32_t _current_esp,
+    uint32_t ebx,
+    uint32_t edx,
+    uint32_t ecx,
+    uint32_t eax,
+    uint32_t eip,
+    uint32_t cs,
+    uint32_t eflags,
+    uint32_t esp,
+    uint32_t ds
+) {
+
+// uint32_t eax, uint32_t ecx, uint32_t edx, uint32_t ebx, uint32_t esp, uint32_t ebp, uint32_t esi, uint32_t edi, uint16_t cs, uint32_t eip)  {
     ProcessCPUState state;
     state.eax = eax;
     state.ebx = ebx;
@@ -62,12 +84,29 @@ void isr_handler(uint32_t x, uint32_t info, uint32_t eax, uint32_t ecx, uint32_t
     // term_putchar('?');)
     // char scancode;
 
-    printf("**INTERRUPT %x \n", x);
+    printf("**INTERRUPT %x\n", x);
+    // printf("**INTERRUPT %x - info,syscalls,eax,ebx...: %x, %x, %x, %x, %x, %x, %x, %x, %x, %x, %x, %x, %x, %x\n",
+    //     x,
+    //     info,
+    //     syscall1,
+    //     syscall2,
+    //     syscall3,
+    //     syscall4,
+    //     eax,
+    //     ebx,
+    //     ecx,
+    //     edx,
+    //     esp,
+    //     ebp,
+    //     esi,
+    //     edi,
+    //     eip
+    // );
 
     // printf("%x %x %x %x %x\n", eax, ebx, ecx, edx, esp);
 
     if (x < 32) {
-        printf("exception %d error code: %x", x, info);
+        printf("exception %d error code: %x\n", x, info);
         outl(0xf4, 0x10);
     }
 
@@ -87,17 +126,21 @@ void isr_handler(uint32_t x, uint32_t info, uint32_t eax, uint32_t ecx, uint32_t
             // scancode = inb(0x60);
             // serial_write(&com1, "?");
             inb(0x60);
-            break;
+            break;  
+        case 0x80:
+            send_eoi(x);
+            return _syscall(state.eax, (void*) syscall1, (void*) syscall2, (void*) syscall3, (void*) syscall4);
     }
 
     send_eoi(x);
+    return 0;
 }
 
 int _syscall(uint32_t syscall_no, void *a, void *b, void *c, void *d) {
-    printf("syscall %d\n", syscall_no);
+    // printf("syscall %d\n", syscall_no);
     switch(syscall_no) {
         case WRITE:
-//            printf("called WRITE (%d) with args: %x, %x, %x, %x\n", syscall_no, (int)a, (int)b, (int)c, (int)d);
+            // printf("called WRITE (%d) with args: %x, %x, %x, %x\n", syscall_no, (int)a, (int)b, (int)c, (int)d);
             io_wait();
             int fd = (int) a;
             char *ptr = (char *)b;

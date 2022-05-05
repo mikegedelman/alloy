@@ -7,13 +7,19 @@ restore_process:
     push ebp
     mov ebp, esp
 
+    mov ax, (4 * 8) | 3 ; ring 3 data with bottom 2 bits set for ring 3
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax ; SS is handled by iret
+
     ; set up stack frame iret expects
     mov esp, [ebp + 24]
     mov eax, esp
-    push (2 * 8)
+    push (4 * 8) | 3 ; data
     push eax
     pushf
-    push (1 * 8)
+    push (3 * 8) | 3 ; code
     push dword [ebp + 40]
     mov eax, [ebp + 8]
     mov ebx, [ebp + 12]
@@ -62,10 +68,10 @@ global jump_usermode
 jump_usermode:
     mov ax, (4 * 8) | 3 ; ring 3 data with bottom 2 bits set for ring 3
     mov ds, ax
-    mov es, ax 
-    mov fs, ax 
+    mov es, ax
+    mov fs, ax
     mov gs, ax ; SS is handled by iret
- 
+
     ; set up the stack frame iret expects
     mov eax, esp
     push (4 * 8) | 3 ; data selector
@@ -76,19 +82,19 @@ jump_usermode:
     iret
 
 
-extern _syscall
-global int128
-int128:
-    push ebp
-    mov ebp, esp
-    push dword [ebp + 28]
-    push dword [ebp + 24]
-    push dword [ebp + 20]
-    push dword [ebp + 16]
-    push eax
-    call _syscall
-    leave
-    iret
+; extern _syscall
+; global int128
+; int128:
+;     push ebp
+;     mov ebp, esp
+;     push dword [ebp + 28]
+;     push dword [ebp + 24]
+;     push dword [ebp + 20]
+;     push dword [ebp + 16]
+;     push eax
+;     call _syscall
+;     leave
+;     iret
 
 ; This macro creates a routine that will call our isr_handler function
 ; in Rust, passing the number of the interrupt recieved.
@@ -97,14 +103,35 @@ extern isr_handler
     ; Commented instrs: we should probably be saving all of these segments and stuff,
     ; but we don't have a userspace right now, so it's ok for a minute
     pusha
+    mov ebx, %1
+    cmp ebx, 0x80
+    jne push_zero_syscall_args%1
+    mov ecx, [esp + 44] ; ecx now points to the userspace esp
+    push dword [ecx + 12]
+    push dword [ecx + 8]
+    push dword [ecx + 4]
+    push dword [ecx]
+    jmp call_isr_handler%1
+push_zero_syscall_args%1:
+    push 0
+    push 0
+    push 0
+    push 0
+call_isr_handler%1:
     push dword [esp + 4]
     push %1
     call isr_handler
+    add esp, (4 * 6)
 
-    ; cleanup
-    add esp, 8
+    mov ebx, %1
+    cmp ebx, 0x80
+    jne isr_handler_ret%1
+syscall_modify_eax%1:
+    mov [esp + 28], eax ; write eax for popa
+isr_handler_ret%1:
 	popa
 	iret ; pops 5 things at once: CS, EIP, EFLAGS, SS, and ESP
+
 .end:
 %endmacro
 
@@ -365,6 +392,8 @@ int126: handler_macro 126
 global int127
 ; int128 is defined specially above
 int127: handler_macro 127
+global int128
+int128: handler_macro 128
 global int129
 int129: handler_macro 129
 global int130
@@ -622,8 +651,8 @@ int255: handler_macro 255
 
 global isr_handler_table
 isr_handler_table:
-%assign i 0 
-%rep    256 
+%assign i 0
+%rep    256
     dd int%+i ; use DQ instead if targeting 64-bit
-%assign i i+1 
+%assign i i+1
 %endrep

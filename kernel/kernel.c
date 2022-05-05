@@ -44,10 +44,7 @@ extern void jump_usermode();
 /** Stuff to do after init. */
 void kernel_tasks() {
     printf("Early init complete.\n");
-    uint32_t esp;
-    asm volatile("mov %%esp, %0" : "=r"(esp));
-    save_kernel_stack(esp);
-    jump_usermode();
+    // jump_usermode();
 
     uint8_t buf[512];
     int bytes_read = ata_read(&ata1, ATA_MASTER, 0, 512, buf);
@@ -75,6 +72,7 @@ void kernel_tasks() {
     uint8_t *file_buf = heap_alloc(f->size);
     fat_read(f, file_buf);
 
+    schedule_process(file_buf);
     schedule_process(file_buf);
     while (1) {}
 }
