@@ -50,7 +50,7 @@ pid_t schedule_process(uint8_t *buf) { // , size_t buf_len) {
     max_pid++;
 
     setup_page_table(proc);
-    virtualmem_map(proc->base_mem_addr_phys, 0x8000000, PAGEDIR_PRESENT | PAGEDIR_WRITE | PAGEDIR__4M_PAGE);
+    virtualmem_map(proc->base_mem_addr_phys, 0x8000000, PAGEDIR_PRESENT | PAGEDIR_WRITE | PAGEDIR__4M_PAGE | PAGEDIR_USER);
     proc->cpu_state.eip = load_elf(buf);
     proc->state = READY;
 
@@ -73,9 +73,9 @@ void next_process(ProcessCPUState *cpu_state) {
     }
     printf("Moving from PID %u to %u\n", cur_pid, next_pid);
 
-    uint32_t flags = PAGEDIR_PRESENT | PAGEDIR_WRITE | PAGEDIR__4M_PAGE;
+    // uint32_t flags = PAGEDIR_PRESENT | PAGEDIR_WRITE | PAGEDIR__4M_PAGE | PAGEDIR_USER;
     printf("Mapping 0x8000000 to %x\n", new_proc->base_mem_addr_phys);
-    virtualmem_map(new_proc->base_mem_addr_phys, 0x8000000, PAGEDIR_PRESENT | PAGEDIR_WRITE | PAGEDIR__4M_PAGE);
+    virtualmem_map(new_proc->base_mem_addr_phys, 0x8000000, PAGEDIR_PRESENT | PAGEDIR_WRITE | PAGEDIR__4M_PAGE | PAGEDIR_USER);
 
     // new_proc->state = RUNNING;
     // cur_pid = new_proc->pid;

@@ -11,7 +11,7 @@ DOCKER := docker run -v $(shell pwd):/work -w /work mikegedelman/alloy:master
 
 
 CC := i686-alloy-gcc
-CFLAGS := -I./include -std=gnu11 -ffreestanding -O -Wall -Wextra -g
+CFLAGS := -I./include -std=gnu11 -ffreestanding -O -Wall -Wextra -Wpedantic -g
 
 all: os-multiboot.bin userspace
 
@@ -28,6 +28,7 @@ os-multiboot.bin: $(OBJECTS)
 
 userspace:
 	$(MAKE) -C $@
+	scripts/update-hdd.sh
 
 run: os-multiboot.bin
 	qemu-system-i386 -kernel os-multiboot.bin -serial stdio -hda hdd.img

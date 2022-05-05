@@ -2,6 +2,15 @@
 #include <stddef.h>
 #include <kernel/string.h>
 
+void *memset(void *dest, int c_int, size_t n) {
+    uint8_t c = c_int;
+    uint8_t *buf = dest;
+    for (int i = 0; i < n; i++) {
+        buf[i] = c;
+    }
+    return dest;
+}
+
 void *memcpy(void *dest, const void *src, size_t n) {
     size_t i;
 

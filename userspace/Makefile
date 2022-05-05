@@ -1,11 +1,12 @@
-user.exe: main.c
-	i686-alloy-gcc -g main.c -o user.exe
-	cp user.exe /Volumes/NO\ NAME/USER.EXE
-	sync
+CC := i686-alloy-gcc
+CFLAGS := -g
 
 all: user.exe
 
+user.exe: main.c
+	$(CC) $(CFLAGS) $^ -o $@
+	cp user.exe /Volumes/NO\ NAME/USER.EXE
+	sync
+
 clean:
 	rm user.exe
-
-.PHONY: clean

@@ -79,7 +79,7 @@ void virtualmem_map(uint32_t physical, uint32_t virtual, uint32_t flags) {
 void virtualmem_init() {
     end_of_kernel_virtual = ((uint32_t)&kernel_end & 0xFFC00000) + _4MB;
 
-    uint32_t flags = PAGEDIR_PRESENT | PAGEDIR_WRITE | PAGEDIR__4M_PAGE;
+    uint32_t flags = PAGEDIR_PRESENT | PAGEDIR_WRITE | PAGEDIR__4M_PAGE | PAGEDIR_USER;
     virtualmem_map(0, BASE_VIRTUAL_ADDRESS, flags);
 
     uint32_t kernel_size = &kernel_end - &kernel_start;

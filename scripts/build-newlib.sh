@@ -95,6 +95,10 @@ exit
   cd $REPO/build || exit
 else
   echo "Found patched newlib at $REPO/build/newlib-alloy"
+  cd $REPO/toolchain/newlib/files || (echo "error"; exit)
+  cp -r ./* $REPO/build/newlib-alloy/
+  echo "Copied files from $REPO/toolchain/newlib/files"
+  echo "Don't forget to run autoreconf if you update Makefile.am"
 fi
 
 echo $PATH
