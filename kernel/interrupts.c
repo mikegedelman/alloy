@@ -45,17 +45,24 @@ void send_eoi(uint32_t irq) {
         pic2_eoi();
     }
 
-    pic2_eoi();
     pic1_eoi();
 }
 
 void isr_handler(uint32_t x, uint32_t info, uint32_t eax, uint32_t ecx, uint32_t edx, uint32_t ebx, uint32_t esp, uint32_t ebp, uint32_t esi, uint32_t edi, uint16_t cs, uint32_t eip)  {
+    ProcessCPUState state;
+    state.eax = eax;
+    state.ebx = ebx;
+    state.ecx = ecx;
+    state.edx = edx;
+    state.esp = esp;
+    state.ebp = ebp;
+    state.esi = esi;
+    state.edi = edi;
+    state.eip = eip;
     // term_putchar('?');)
     // char scancode;
 
-    // if (x != 0x20) {
-    //     printf("**INTERRUPT %x \n", x);
-    // }
+    printf("**INTERRUPT %x \n", x);
 
     // printf("%x %x %x %x %x\n", eax, ebx, ecx, edx, esp);
 
@@ -68,19 +75,12 @@ void isr_handler(uint32_t x, uint32_t info, uint32_t eax, uint32_t ecx, uint32_t
         registered_interrupts[x]((void*) info);
     }
 
-    ProcessCPUState state;
+
     switch (x) {
         case 32:
-            state.eax = eax;
-            state.ebx = ebx;
-            state.ecx = ecx;
-            state.edx = edx;
-            state.esp = esp;
-            state.ebp = ebp;
-            state.esi = esi;
-            state.edi = edi;
-            state.eip = eip;
+
             send_eoi(x);
+            send_eoi(0);
             next_process(&state);
             break;
         case 33:
