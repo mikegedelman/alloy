@@ -34,17 +34,9 @@ void print_dir_entry(FatDirectoryEntry *entry) {
     printf("%s\n", filename);
 }
 
-
-// void test_user_function() {
-//     printf("hi from test_user_function");
-// }
-
-extern void jump_usermode();
-
 /** Stuff to do after init. */
 void kernel_tasks() {
     printf("Early init complete.\n");
-    // jump_usermode();
 
     uint8_t buf[512];
     int bytes_read = ata_read(&ata1, ATA_MASTER, 0, 512, buf);

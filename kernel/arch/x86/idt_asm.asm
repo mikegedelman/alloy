@@ -18,14 +18,13 @@ restore_process:
     mov eax, esp
     push (4 * 8) | 3 ; data
     push eax
-    pushf
+    push dword [ebp + 44] ; flags
     push (3 * 8) | 3 ; code
     push dword [ebp + 40]
     mov eax, [ebp + 8]
     mov ebx, [ebp + 12]
     mov ecx, [ebp + 16]
     mov edx, [ebp + 20]
-    ; mov esp, [ebp + 24]
     mov esi, [ebp + 32]
     mov edi, [ebp + 36]
     mov ebp, [ebp + 28]
@@ -43,24 +42,6 @@ test_user_function:
    mov ecx, 4
    mov edx, 5
    int 0x80
-
-
-global jump_usermode
-jump_usermode:
-    mov ax, (4 * 8) | 3 ; ring 3 data with bottom 2 bits set for ring 3
-    mov ds, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax ; SS is handled by iret
-
-    ; set up the stack frame iret expects
-    mov eax, esp
-    push (4 * 8) | 3 ; data selector
-    push eax ; current esp
-    pushf ; eflags
-    push (3 * 8) | 3 ; code selector (ring 3 code with bottom 2 bits set for ring 3)
-    push test_user_function ; instruction address to return to
-    iret
 
 
 ; This macro creates a routine that will call our isr_handler function

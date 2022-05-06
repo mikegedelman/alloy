@@ -88,7 +88,8 @@ extern void restore_process(uint32_t eax,
     uint32_t ebp,
     uint32_t esi,
     uint32_t edi,
-    uint32_t eip
+    uint32_t eip,
+    uint32_t eflags
 );
 
 void next_process(pid_t next_pid) {
@@ -123,7 +124,8 @@ void next_process(pid_t next_pid) {
         new_proc->cpu_state.ebp,
         new_proc->cpu_state.esi,
         new_proc->cpu_state.edi,
-        new_proc->cpu_state.eip
+        new_proc->cpu_state.eip,
+        new_proc->cpu_state.eflags
     );
 }
 
@@ -159,7 +161,8 @@ bool should_resume(Process *proc) {
                 proc->cpu_state.ebp,
                 proc->cpu_state.esi,
                 proc->cpu_state.edi,
-                proc->cpu_state.eip
+                proc->cpu_state.eip,
+                proc->cpu_state.eflags
             );
             // should be unreachable
         }
@@ -204,7 +207,8 @@ void timer_schedule(ProcessCPUState *cpu_state) {
             cur_proc->cpu_state.ebp,
             cur_proc->cpu_state.esi,
             cur_proc->cpu_state.edi,
-            cur_proc->cpu_state.eip
+            cur_proc->cpu_state.eip,
+            cur_proc->cpu_state.eflags
         );
     }
 

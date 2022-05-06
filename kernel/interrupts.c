@@ -74,8 +74,6 @@ uint32_t isr_handler(
     uint32_t esp,
     uint32_t ds
 ) {
-
-// uint32_t eax, uint32_t ecx, uint32_t edx, uint32_t ebx, uint32_t esp, uint32_t ebp, uint32_t esi, uint32_t edi, uint16_t cs, uint32_t eip)  {
     ProcessCPUState state;
     state.eax = eax;
     state.ebx = ebx;
@@ -86,6 +84,7 @@ uint32_t isr_handler(
     state.esi = esi;
     state.edi = edi;
     state.eip = eip;
+    state.eflags = eflags;
     // term_putchar('?');)
     // char scancode;
 
