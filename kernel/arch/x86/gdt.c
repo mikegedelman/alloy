@@ -135,7 +135,8 @@ void init_gdt() {
     flush_tss();
 }
 
+/// Save $esp in the TSS so that it can be picked back up when
+/// we return from interrupts.
 void save_kernel_stack(uint32_t stack) {
     tss_entry.esp0 = stack;
 }
-

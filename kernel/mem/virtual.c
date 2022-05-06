@@ -73,6 +73,10 @@ void virtualmem_free(void *virtual_addr) {
 void virtualmem_map(uint32_t physical, uint32_t virtual, uint32_t flags) {
     size_t pagedir_num = virtual >> 22;
     page_directory[pagedir_num] = page_directory_entry(physical, flags);
+
+    // After remapping page directory entries, we must flush the TLB - otherwise
+    // accesses to those virtual addresses may return values from the old mapping.
+    invlpg((void*) virtual);
 }
 
 /// Initialize the page directory to be used for kernel code
@@ -106,7 +110,7 @@ void virtualmem_init() {
 //     uint32_t flags = PAGEDIR_PRESENT | PAGEDIR_WRITE | PAGEDIR__4M_PAGE;
 //     page_directory[kernel_pagedir_num] = page_directory_entry(0, flags);
 
-    
+
 
 //     // let start = (&kernel_start as *const u32) as u32;
 //     // let end = (&kernel_end as *const u32) as u32;

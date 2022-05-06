@@ -2,16 +2,17 @@
 .extern errno
 
 .text
-.globl write
-write:
-write:
+.globl __alloy_syscall
+__alloy_syscall:
+__alloy_syscall:
     push %ebp
     mov %esp, %ebp
+    push 24(%ebp)
+    push 20(%ebp)
     push 16(%ebp)
     push 12(%ebp)
-    push 8(%ebp)
-    mov $18, %eax
+    mov 8(%ebp), %eax
     int $0x80
-    movl %eax, errno
+    movl 0, errno
     leave
     ret

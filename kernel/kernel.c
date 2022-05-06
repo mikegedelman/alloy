@@ -72,9 +72,24 @@ void kernel_tasks() {
     uint8_t *file_buf = heap_alloc(f->size);
     fat_read(f, file_buf);
 
-    schedule_process(file_buf);
-    schedule_process(file_buf);
-    while (1) {}
+    FatFile *f2 = fat_open(&fat16fs, "WRITE.EXE");
+    if (f2 == NULL) {
+        printf("Couldn't open WRITE.EXE.\n");
+        return;
+    }
+
+    printf("WRITE.EXE: %d bytes\n", f2->size);
+    uint8_t *write_buf = heap_alloc(f2->size);
+    fat_read(f2, write_buf);
+
+    begin_scheduling();
+
+
+    int pid = schedule_process(file_buf);
+    printf("Scheduled a process to be executed. New pid: %d\n", pid);
+    int pid2 = schedule_process(write_buf);
+    printf("Scheduled another process to be executed. New pid: %d\n", pid2);
+    hlt();
 }
 
 

@@ -82,15 +82,11 @@ if [[ ! -d $REPO/build/newlib-alloy ]]; then
   cd $REPO/toolchain/newlib/files || exit
   cp -r ./* $REPO/build/newlib-alloy/
 
-
-exit
-
   cd $REPO/build/newlib-alloy/newlib/libc/sys/alloy || (echo "error copying alloy libc sys folder"; exit)
   autoreconf || exit
 
   cd $REPO/build/newlib-alloy/newlib/libc/sys || exit
   autoreconf || exit
-
 
   cd $REPO/build || exit
 else
@@ -107,15 +103,13 @@ SYSROOT=$REPO/alloy
 
 mkdir -p $SYSROOT
 
-
-if [[ ! -d $REPO/build/newlib ]]; then
-  cd $REPO/build || exit
-  mkdir newlib
-  cd newlib || exit
-  ../../build/newlib-alloy/configure --prefix=/usr --target=i686-alloy
-else
-  cd $REPO/build/newlib || exit
+if [[ -d $REPO/build/newlib ]]; then
+  rm -rf $REPO/build/newlib
 fi
+
+mkdir $REPO/build/newlib
+cd $REPO/build/newlib || exit
+../../build/newlib-alloy/configure --prefix=/usr --target=i686-alloy
 
 make -j$CPU_CORES all
 make DESTDIR="$SYSROOT" install

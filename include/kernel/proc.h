@@ -19,6 +19,10 @@ typedef struct {
 } ProcessCPUState;
 
 pid_t schedule_process(uint8_t *buf);
-void next_process(ProcessCPUState *state);
+void timer_schedule(ProcessCPUState *cpu_state);
+void block_process(ProcessCPUState *cpu_state, int fd, uint32_t read_ptr, int read_bytes);
+void begin_scheduling();
+void exit_process();
+int proc_write(int fd, char *buf, int len);
 
 #endif

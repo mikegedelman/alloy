@@ -2,7 +2,12 @@
 
 typedef void (*interrupt_handler_fn) (void*);
 
+#define EOT 4
+
 static interrupt_handler_fn registered_interrupts[256];
+static uint8_t *write_buffer;
+static size_t write_buffer_size = 1024 * 1024; // 1MB
+static bool write_buffer_dirty;
 
 
 #define SYSCALL 0x80
@@ -84,7 +89,7 @@ uint32_t isr_handler(
     // term_putchar('?');)
     // char scancode;
 
-    printf("**INTERRUPT %x\n", x);
+    // printf("**INTERRUPT %x\n", x);
     // printf("**INTERRUPT %x - info,syscalls,eax,ebx...: %x, %x, %x, %x, %x, %x, %x, %x, %x, %x, %x, %x, %x, %x\n",
     //     x,
     //     info,
@@ -117,43 +122,53 @@ uint32_t isr_handler(
 
     switch (x) {
         case 32:
-
             send_eoi(x);
-            send_eoi(0);
-            next_process(&state);
+            timer_schedule(&state);
             break;
         case 33:
             // scancode = inb(0x60);
             // serial_write(&com1, "?");
             inb(0x60);
-            break;  
+            break;
         case 0x80:
             send_eoi(x);
-            return _syscall(state.eax, (void*) syscall1, (void*) syscall2, (void*) syscall3, (void*) syscall4);
+            return _syscall(state.eax, (void*) syscall1, (void*) syscall2, (void*) syscall3, (void*) syscall4, &state);
     }
 
     send_eoi(x);
     return 0;
 }
 
-int _syscall(uint32_t syscall_no, void *a, void *b, void *c, void *d) {
+int _syscall(uint32_t syscall_no, void *a, void *b, void *c, void *d, ProcessCPUState *cpu_state) {
     // printf("syscall %d\n", syscall_no);
-    switch(syscall_no) {
-        case WRITE:
-            // printf("called WRITE (%d) with args: %x, %x, %x, %x\n", syscall_no, (int)a, (int)b, (int)c, (int)d);
-            io_wait();
-            int fd = (int) a;
-            char *ptr = (char *)b;
-            int len = (int) c;
-            if (fd == 1) {
-                for (int i = 0; i < len; i++) {
-                    putchar(ptr[i]);
+    if (syscall_no == WRITE) {
+        // printf("called WRITE (%d) with args: %x, %x, %x, %x\n", syscall_no, (int)a, (int)b, (int)c, (int)d);
+        int fd = (int) a;
+        char *ptr = (char *)b;
+        int len = (int) c;
+        return proc_write(fd, ptr, len);
+    } else if (syscall_no == READ) {
+        int fd = (int) a;
+        uint8_t *ptr = (uint8_t*) b;
+        int len = (int) c;
+
+        printf("called READ (%d) with args: %x, %x, %x, %x\n", syscall_no, (int)a, (int)b, (int)c, (int)d);
+        if (write_buffer_dirty) {
+            for (size_t i = 0; i < len; i++) {
+                if (write_buffer[i] == EOT) {
+                    break;
                 }
+                *ptr = write_buffer[i];
             }
-            return 0;
-        case EXIT:
-            printf("exit\n");
-            outl(0xf4, 0x10);
-            return 0; // unreachable
+            write_buffer_dirty = false;
+        } else {
+            // void block_process(ProcessCPUState *cpu_state, int fd, uint32_t read_ptr, int read_bytes)
+            printf("block_process fd ptr %x %x\n", fd, ptr);
+            block_process(cpu_state, fd, (uint32_t) ptr, len);
+        }
+        return 0;
+    } else if (syscall_no == EXIT) {
+        exit_process();
+        return 0; // unreachable
     }
 }

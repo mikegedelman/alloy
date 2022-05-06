@@ -28,27 +28,8 @@ restore_process:
     ; mov esp, [ebp + 24]
     mov esi, [ebp + 32]
     mov edi, [ebp + 36]
-    mov ebp, esp
+    mov ebp, [ebp + 28]
     iret
-
-global begin_process
-begin_process:
-    push ebp
-    mov ebp, esp
-    mov esp, [ebp + 12]
-    jmp dword [ebp + 8]
-
-global write
-write:
-    push ebp
-    mov ebp, esp
-    push dword [ebp + 16]
-    push dword [ebp + 12]
-    push dword [ebp + 8]
-    mov eax, 18
-    int 80h
-    leave
-    ret
 
 global flush_tss
 flush_tss:
@@ -82,20 +63,6 @@ jump_usermode:
     iret
 
 
-; extern _syscall
-; global int128
-; int128:
-;     push ebp
-;     mov ebp, esp
-;     push dword [ebp + 28]
-;     push dword [ebp + 24]
-;     push dword [ebp + 20]
-;     push dword [ebp + 16]
-;     push eax
-;     call _syscall
-;     leave
-;     iret
-
 ; This macro creates a routine that will call our isr_handler function
 ; in Rust, passing the number of the interrupt recieved.
 extern isr_handler
@@ -120,6 +87,26 @@ push_zero_syscall_args%1:
 call_isr_handler%1:
     push dword [esp + 4]
     push %1
+    ; Here's what the stack looks like at the time of calling isr_handler:
+    ; interrupt_num
+    ; info
+    ; syscall1
+    ; syscall2
+    ; syscall3
+    ; syscall4
+    ; edi
+    ; esi
+    ; ebp fe88
+    ; *kernel* esp - not the saved userspace esp
+    ; ebx
+    ; edx
+    ; ecx
+    ; eax
+    ; eip
+    ; cs
+    ; eflags
+    ; esp - this is sthe esp from userspace - was pushed by the hardware
+    ; ds
     call isr_handler
     add esp, (4 * 6)
 

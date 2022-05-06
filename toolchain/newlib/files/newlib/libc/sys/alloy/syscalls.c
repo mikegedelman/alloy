@@ -10,6 +10,8 @@
 
 #define SYSCALL 0x80
 
+extern int __alloy_syscall(int syscall_no, int arg1, int arg2, int arg3, int arg4);
+
 enum Syscalls {
 	EXIT = 1,
 	CLOSE = 2,
@@ -38,7 +40,7 @@ void _exit() {
       	"int %1"
 		:: "i" (0x1),
 		   "i" (0x80)
-		: "eax", "ebx" 
+		: "eax", "ebx"
 	);
 }
 int close(int file) {
@@ -89,11 +91,14 @@ int lseek(int file, int ptr, int dir) {
 int open(const char *name, int flags, ...) {
     return -1;
 }
-int read(int file, char *ptr, int len) {
-    return 0;
+
+int read(int fd, char *ptr, int len) {
+    return __alloy_syscall(READ, fd, (int) ptr, len, 0);
 }
 
-int write(int fd, char *ptr, int len);
+int write(int fd, char *ptr, int len) {
+    return __alloy_syscall(WRITE, fd, (int) ptr, len, 0);
+}
 
 caddr_t sbrk(int incr) {
     extern char _end;		/* Defined by the linker */
