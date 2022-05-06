@@ -1,7 +1,7 @@
 #include <kernel/all.h>
 
-#define assert(expr, msg) if (!(expr)) { panic(msg); }
-
+/// Early init: set up kernel GDT, IDT, PIC, and state for
+/// various modules such as serial and ata.
 void early_init() {
     init_gdt();
     init_idt();
@@ -11,9 +11,10 @@ void early_init() {
     serial_init();
     term_init();
     ata_init();
-    init_interrupts();
 }
 
+/// Read memory map info from multiboot, store it in our memory manager,
+/// and then set up virtual memory and our heap.
 void setup_memory(MultibootInfo *multiboot_info, uint32_t magic) {
     assert(magic == MULTIBOOT_MAGIC, "Invalid multiboot magic number");
     load_multiboot_mmap(multiboot_info);
@@ -26,17 +27,17 @@ void setup_memory(MultibootInfo *multiboot_info, uint32_t magic) {
     heap_init();
 }
 
-
-
+/// Print a FAT16 directory entry - mostly for debugging.
 void print_dir_entry(FatDirectoryEntry *entry) {
     char filename[12];
     fat_render_filename(entry, filename);
     printf("%s\n", filename);
 }
 
-/** Stuff to do after init. */
+/// Miscellaneous tasks - mostly used for debugging or testing what's currently
+/// being worked on.
 void kernel_tasks() {
-    printf("Early init complete.\n");
+    puts("Early init complete.\n");
 
     uint8_t buf[512];
     int bytes_read = ata_read(&ata1, ATA_MASTER, 0, 512, buf);
@@ -84,7 +85,7 @@ void kernel_tasks() {
     hlt();
 }
 
-
+/// This is the main entrypoint that is called by our loader.asm
 void kernel_main(MultibootInfo *multiboot_info, uint32_t magic) {
     early_init();
     setup_memory(multiboot_info, magic);
@@ -104,8 +105,6 @@ void kernel_main(MultibootInfo *multiboot_info, uint32_t magic) {
 // uint8_t buf[512];
 // int bytes_read = ata_read(&ata1, ATA_MASTER, 0, 512, buf);
 // printf("%d bytes read from ata1.\n", bytes_read);
-
-
 
 // Networking stuff
 //

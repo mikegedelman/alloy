@@ -4,4 +4,6 @@
 void exit_qemu();
 void panic(const char *msg);
 
+#define assert(expr, msg) if (!(expr)) { panic(msg); }
+
 #endif

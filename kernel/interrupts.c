@@ -4,11 +4,9 @@ typedef void (*interrupt_handler_fn) (void*);
 
 #define EOT 4
 
+/// Interrupt handler function table - so we can register custom interrupt handleres
+/// from within the kernel
 static interrupt_handler_fn registered_interrupts[256];
-static uint8_t *write_buffer;
-static size_t write_buffer_size = 1024 * 1024; // 1MB
-static bool write_buffer_dirty;
-
 
 #define SYSCALL 0x80
 
@@ -34,18 +32,18 @@ enum Syscalls {
     GETTIMEOFDAY = 19
 };
 
-
-void init_interrupts() {
-    for (int i = 0; i < 256; i++) {
-        registered_interrupts[i] = NULL;
-    }
-}
-
+/// Register an interrupt handler to be called on interrupt irq_num
 void register_interrupt_handler(size_t irq_num, interrupt_handler_fn fn) {
     registered_interrupts[irq_num] = fn;
 }
 
+/// Send End-of-Interrupt to the CPU
+/// This tells the PIC we're ready for more interrupts.
+/// Note that EFLAGS must also be set appropriately to receive
+/// interrupts.
+/// https://wiki.osdev.org/8259_PIC
 void send_eoi(uint32_t irq) {
+    // We must notify both the master and slave PIC for irqs >= 8.
     if (irq >= 8) {
         pic2_eoi();
     }
@@ -53,6 +51,25 @@ void send_eoi(uint32_t irq) {
     pic1_eoi();
 }
 
+/// System call handler
+/// This invoked from our generic interrupt handler and will
+/// call the appropriate logic based on syscall_no
+int syscall(uint32_t syscall_no, void *a, void *b, void *c, void *_d, ProcessCPUState *cpu_state) {
+    if (syscall_no == WRITE) {
+        return proc_write((int) a, (char*)b, (int) c);
+    } else if (syscall_no == READ) {
+        // For now, don't even check if data is already available in the given fd -
+        // just block and let the scheduler figure it out.
+        block_process(cpu_state, (int) a, (uint32_t) b, (int) c);
+        return 0;
+    } else if (syscall_no == EXIT) {
+        exit_process();
+        return 0; // unreachable
+    }
+}
+
+/// Our main entry point for all interrupts
+/// This is called in idt_asm.asm, where we also set up the isr table.
 uint32_t isr_handler(
     uint32_t x,
     uint32_t info,
@@ -63,31 +80,17 @@ uint32_t isr_handler(
     uint32_t edi,
     uint32_t esi,
     uint32_t ebp,
-    uint32_t _current_esp,
+    uint32_t _current_esp, // Unused, but pushed anyway by pusha
     uint32_t ebx,
     uint32_t edx,
     uint32_t ecx,
     uint32_t eax,
     uint32_t eip,
-    uint32_t cs,
+    uint32_t _cs,   // Unused
     uint32_t eflags,
     uint32_t esp,
-    uint32_t ds
+    uint32_t _ds    // Unused
 ) {
-    ProcessCPUState state;
-    state.eax = eax;
-    state.ebx = ebx;
-    state.ecx = ecx;
-    state.edx = edx;
-    state.esp = esp;
-    state.ebp = ebp;
-    state.esi = esi;
-    state.edi = edi;
-    state.eip = eip;
-    state.eflags = eflags;
-    // term_putchar('?');)
-    // char scancode;
-
     // printf("**INTERRUPT %x\n", x);
     // printf("**INTERRUPT %x - info,syscalls,eax,ebx...: %x, %x, %x, %x, %x, %x, %x, %x, %x, %x, %x, %x, %x, %x\n",
     //     x,
@@ -107,67 +110,71 @@ uint32_t isr_handler(
     //     eip
     // );
 
-    // printf("%x %x %x %x %x\n", eax, ebx, ecx, edx, esp);
-
     if (x < 32) {
         printf("exception %d error code: %x\n", x, info);
-        outl(0xf4, 0x10);
+        exit_qemu();
     }
 
+    // If we registered a handler for this interrupt in code elsewhere,
+    // then just call that and then return
+    // This is probably used mostly by device drivers to handle hardware
+    // interrupts. E.g.: the rtl8139 driver uses this.
     if (registered_interrupts[x] != NULL) {
         registered_interrupts[x]((void*) info);
-    }
-
-
-    switch (x) {
-        case 32:
-            send_eoi(x);
-            timer_schedule(&state);
-            break;
-        case 33:
-            // scancode = inb(0x60);
-            // serial_write(&com1, "?");
-            inb(0x60);
-            break;
-        case 0x80:
-            send_eoi(x);
-            return _syscall(state.eax, (void*) syscall1, (void*) syscall2, (void*) syscall3, (void*) syscall4, &state);
-    }
-
-    send_eoi(x);
-    return 0;
-}
-
-int _syscall(uint32_t syscall_no, void *a, void *b, void *c, void *d, ProcessCPUState *cpu_state) {
-    // printf("syscall %d\n", syscall_no);
-    if (syscall_no == WRITE) {
-        // printf("called WRITE (%d) with args: %x, %x, %x, %x\n", syscall_no, (int)a, (int)b, (int)c, (int)d);
-        int fd = (int) a;
-        char *ptr = (char *)b;
-        int len = (int) c;
-        return proc_write(fd, ptr, len);
-    } else if (syscall_no == READ) {
-        int fd = (int) a;
-        uint8_t *ptr = (uint8_t*) b;
-        int len = (int) c;
-
-        printf("called READ (%d) with args: %x, %x, %x, %x\n", syscall_no, (int)a, (int)b, (int)c, (int)d);
-        if (write_buffer_dirty) {
-            for (size_t i = 0; i < len; i++) {
-                if (write_buffer[i] == EOT) {
-                    break;
-                }
-                *ptr = write_buffer[i];
-            }
-            write_buffer_dirty = false;
-        } else {
-            // void block_process(ProcessCPUState *cpu_state, int fd, uint32_t read_ptr, int read_bytes)
-            printf("block_process fd ptr %x %x\n", fd, ptr);
-            block_process(cpu_state, fd, (uint32_t) ptr, len);
-        }
+        send_eoi(x);
         return 0;
-    } else if (syscall_no == EXIT) {
-        exit_process();
-        return 0; // unreachable
+    }
+
+    if (x == 33) {
+        // Keyboard interrupt (IRQ1)
+        // TODO: handle keyboard input here - map scancodes to ASCII chars, etc
+        // scancode = inb(0x60);
+        // serial_write(&com1, "?");
+        inb(0x60);
+        send_eoi(x);
+        return 0;
+    } else if (x == 32) {
+        // Hardware timer interrupt (IRQ0)
+        // Grab the current CPU state and pass it off to the scheduler
+        ProcessCPUState state;
+        state.eax = eax;
+        state.ebx = ebx;
+        state.ecx = ecx;
+        state.edx = edx;
+        state.esp = esp;
+        state.ebp = ebp;
+        state.esi = esi;
+        state.edi = edi;
+        state.eip = eip;
+        state.eflags = eflags;
+
+        // We'll send the EOI now to acknowledge the interrupt, so
+        // that the scheduler doesn't have to worry about it
+        // This is because we'll probably jump into user code before
+        // returning to this function.
+        send_eoi(x);
+        schedule(&state);
+        return 0; // This should be unreachable
+    } else if (x == 0x80) {
+        // System call
+        // We must save the CPU state because the system call cause the
+        // calling process to block.
+        ProcessCPUState state;
+        state.eax = eax;
+        state.ebx = ebx;
+        state.ecx = ecx;
+        state.edx = edx;
+        state.esp = esp;
+        state.ebp = ebp;
+        state.esi = esi;
+        state.edi = edi;
+        state.eip = eip;
+        state.eflags = eflags;
+        send_eoi(x); // Same reasoning as the hardware timer above for sending EOI now
+        return syscall(state.eax, (void*) syscall1, (void*) syscall2, (void*) syscall3, (void*) syscall4, &state);
+    } else {
+        // All other currently unhandled interrupts
+        send_eoi(x);
+        return 0;
     }
 }

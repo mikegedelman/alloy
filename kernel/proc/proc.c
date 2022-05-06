@@ -171,7 +171,7 @@ bool should_resume(Process *proc) {
     return false;
 }
 
-void timer_schedule(ProcessCPUState *cpu_state) {
+void schedule(ProcessCPUState *cpu_state) {
     if (!ready_for_scheduling) {
         return;
     }
@@ -228,14 +228,14 @@ void block_process(ProcessCPUState *cpu_state, int fd, uint32_t read_ptr, int re
     proc->read_bytes = read_bytes;
 
     printf("Blocked process %d\n", cur_pid);
-    timer_schedule(cpu_state);
+    schedule(cpu_state);
 }
 
 void exit_process() {
     Process *proc = &processes[cur_pid];
     proc->state = DONE;
     printf("Finished process %d\n", cur_pid);
-    timer_schedule(NULL);
+    schedule(NULL);
 }
 
 int proc_write(int fd, char *buf, int len) {

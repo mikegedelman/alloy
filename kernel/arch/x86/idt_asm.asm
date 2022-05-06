@@ -2,26 +2,29 @@ bits 32
 
 section .text
 
+; Restore (or start) a process in userspace.
 global restore_process
 restore_process:
+    ; It may not be necessary to preserve the stack since we're jumping somewhere else,
+    ; but it doesn't hurt.
     push ebp
     mov ebp, esp
 
-    mov ax, (4 * 8) | 3 ; ring 3 data with bottom 2 bits set for ring 3
+    ; Set up segment selectors for userspace jump
+    mov ax, (4 * 8) | 3 ; Data Segment - GDT entry 4 - OR with 3 to indicate Ring 3
     mov ds, ax
     mov es, ax
     mov fs, ax
-    mov gs, ax ; SS is handled by iret
+    mov gs, ax
+    ; ss is handled by iret
 
-    ; set up stack frame iret expects
-    mov esp, [ebp + 24]
-    mov eax, esp
-    push (4 * 8) | 3 ; data
-    push eax
+    ; Set up stack frame iret expects
+    push (4 * 8) | 3      ; Data Segment - GDT entry 4 w/ ring 3
+    push dword [ebp + 24] ; Userspace esp (stack pointer)
     push dword [ebp + 44] ; flags
-    push (3 * 8) | 3 ; code
-    push dword [ebp + 40]
-    mov eax, [ebp + 8]
+    push (3 * 8) | 3      ; Code Segment - GDT entry 3 w/ ring 3
+    push dword [ebp + 40] ; Saved eip - iret will load this value to eip (instruction pointer)
+    mov eax, [ebp + 8]    ; Restore the remaining registers
     mov ebx, [ebp + 12]
     mov ecx, [ebp + 16]
     mov edx, [ebp + 20]
@@ -33,24 +36,17 @@ restore_process:
 global flush_tss
 flush_tss:
     mov ax, (5 * 8) | 0 ; fifth 8-byte selector, symbolically OR-ed with 0 to set the RPL (requested privilege level).
-    ltr ax
+    ltr ax              ; ltr: load task register - set up the given TSS in the task register
     ret
 
-test_user_function:
-   mov eax, 2
-   mov ebx, 3
-   mov ecx, 4
-   mov edx, 5
-   int 0x80
-
+; The handler in C that will do most of the heavy lifting
+; See interrupts.c
+extern isr_handler
 
 ; This macro creates a routine that will call our isr_handler function
-; in Rust, passing the number of the interrupt recieved.
-extern isr_handler
+; in C, passing the number of the interrupt recieved.
 %macro handler_macro 1
-    ; Commented instrs: we should probably be saving all of these segments and stuff,
-    ; but we don't have a userspace right now, so it's ok for a minute
-    pusha
+    pusha ; pushes most all of the registers onto the stack
     mov ebx, %1
     cmp ebx, 0x80
     jne push_zero_syscall_args%1
@@ -60,7 +56,7 @@ extern isr_handler
     push dword [ecx + 4]
     push dword [ecx]
     jmp call_isr_handler%1
-push_zero_syscall_args%1:
+push_zero_syscall_args%1: ; TODO clean this up
     push 0
     push 0
     push 0
@@ -68,6 +64,7 @@ push_zero_syscall_args%1:
 call_isr_handler%1:
     push dword [esp + 4]
     push %1
+
     ; Here's what the stack looks like at the time of calling isr_handler:
     ; interrupt_num
     ; info
@@ -78,7 +75,7 @@ call_isr_handler%1:
     ; edi
     ; esi
     ; ebp fe88
-    ; *kernel* esp - not the saved userspace esp
+    ; *kernel* esp - not the saved userspace esp (it's from the pusha call)
     ; ebx
     ; edx
     ; ecx
@@ -103,6 +100,15 @@ isr_handler_ret%1:
 .end:
 %endmacro
 
+; We can't just use one function because x86 interrupts don't tell you
+; *which* interrupt was fired - so we register a separate function for each
+; interrupt number, with a macro that fills in the interrupt number.
+;
+; Then each handler passes the interrupt number to our isr_handler() function,
+; and we can decide what to do with it from there.
+;
+; Just repeat the handler macro for all possible interrupts
+; Maybe this could be in some sort of preprocessor loop?
 global int0
 int0: handler_macro 0
 global int1
@@ -358,7 +364,6 @@ int125: handler_macro 125
 global int126
 int126: handler_macro 126
 global int127
-; int128 is defined specially above
 int127: handler_macro 127
 global int128
 int128: handler_macro 128
@@ -617,6 +622,7 @@ int254: handler_macro 254
 global int255
 int255: handler_macro 255
 
+; Set up the isr handler table pointing to the symbols defined above.
 global isr_handler_table
 isr_handler_table:
 %assign i 0

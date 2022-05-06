@@ -1,6 +1,6 @@
 #include <kernel/all.h>
 
-void exit_qemu() {
+inline void exit_qemu() {
     outl(0xf4, 0x10);
 }
 
